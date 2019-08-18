@@ -1,6 +1,7 @@
 package com.andreid278.cmc.client.model;
 
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import javax.vecmath.Vector3f;
@@ -15,8 +16,14 @@ import net.minecraftforge.client.model.obj.OBJLoader;
 public class ModelReader {
 	private CMCModel model;
 	
-	public ModelReader(UUID uuid) {
-		model = loadTestModel();
+	public ModelReader(UUID uuid, boolean toCreate) {
+		if(toCreate) {
+			model = loadTestModel();
+		}
+		else {
+			model = new CMCModel();
+			model.loadFromFile(uuid.toString());
+		}
 	}
 	
 	public CMCModel getModel() {
@@ -80,7 +87,18 @@ public class ModelReader {
 		material.setVertices(vertices);
 		
 		List<Integer> colors = Lists.newArrayList();
-		colors.add(0x000000);
+		for(int i = 0; i < 6; i++) {
+			int color = randColor();
+			colors.add(color);
+			colors.add(color);
+			colors.add(color);
+			
+			colors.add(color);
+			colors.add(color);
+			colors.add(color);
+		}
+		
+		/*colors.add(0x000000);
 		colors.add(0xff0000);
 		colors.add(0xffff00);
 
@@ -126,7 +144,7 @@ public class ModelReader {
 
 		colors.add(0xffffff);
 		colors.add(0xffff00);
-		colors.add(0xff0000);
+		colors.add(0xff0000);*/
 
 		material.setColors(colors);
 		
@@ -135,5 +153,14 @@ public class ModelReader {
 		CMCModel model = new CMCModel(materials);
 		
 		return model;
+	}
+	
+	public int randColor() {
+		Random rand = new Random();
+		int r = (int) (rand.nextFloat() * 255);
+		int g = (int) (rand.nextFloat() * 255);
+		int b = (int) (rand.nextFloat() * 255);
+		
+		return r * 256 * 256 + g * 256 + b;
 	}
 }

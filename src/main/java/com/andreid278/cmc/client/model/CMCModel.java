@@ -33,23 +33,19 @@ public class CMCModel {
 	public Vector3f boxMin = new Vector3f();
 	public Vector3f boxMax = new Vector3f();
 
-	public CMCModel(List<MaterialGroup> materials) {
-		this.materials = materials;
-		
+	public CMCModel() {
 		boxMin.x = Float.MAX_VALUE;
 		boxMin.y = Float.MAX_VALUE;
 		boxMin.z = Float.MAX_VALUE;
 		boxMax.x = -Float.MAX_VALUE;
 		boxMax.y = -Float.MAX_VALUE;
 		boxMax.z = -Float.MAX_VALUE;
-		for(MaterialGroup material : materials) {
-			if(material.boxMin.x < boxMin.x) boxMin.x = material.boxMin.x;
-			if(material.boxMin.y < boxMin.y) boxMin.y = material.boxMin.y;
-			if(material.boxMin.z < boxMin.z) boxMin.z = material.boxMin.z;
-			if(material.boxMax.x > boxMax.x) boxMax.x = material.boxMax.x;
-			if(material.boxMax.y > boxMax.y) boxMax.y = material.boxMax.y;
-			if(material.boxMax.z > boxMax.z) boxMax.z = material.boxMax.z;
-		}
+	}
+	
+	public CMCModel(List<MaterialGroup> materials) {
+		this.materials = materials;
+		
+		calculateBBox();
 	}
 
 	public void draw() {
@@ -163,12 +159,13 @@ public class CMCModel {
 		FileOutputStream stream;
 		try {
 			stream = new FileOutputStream(CMCData.instance.dataPathClient + CMCData.instance.curWorldPath + name + "." + CMCData.instance.fileExt);
-			stream.write(CMCData.version);
-			stream.write(materials.size());
+			writeIntToStream(stream, CMCData.version);
+			writeIntToStream(stream, materials.size());
 			for(int i = 0; i < materials.size(); i++) {
 				MaterialGroup material = materials.get(i);
-				stream.write(i);
-				stream.write(material.toByteArray());
+				byte[] materialData = material.toByteArray();
+				writeIntToStream(stream, materialData.length);
+				stream.write(materialData);
 			}
 			stream.flush();
 			stream.close();
@@ -185,13 +182,30 @@ public class CMCModel {
 		FileInputStream stream;
 		try {
 			stream = new FileInputStream(CMCData.instance.dataPathClient + CMCData.instance.curWorldPath + name + "." + CMCData.instance.fileExt);
-			int version = stream.read();
+			
+			int version = readIntFromStream(stream);
 			if(version != CMCData.version) {
 				System.out.println("Trying to load wrong versioned file");
 				stream.close();
 				return false;
 			}
+			
+			int s = readIntFromStream(stream);
+			for(int i = 0; i < s; i++) {
+				int materialDataSize = readIntFromStream(stream);
+				byte[] materialData = new byte[materialDataSize];
+				stream.read(materialData, 0, materialDataSize);
+				
+				MaterialGroup group = new MaterialGroup(0);
+				group.fromByteArray(materialData);
+				materials.add(group);
+			}
+			
+			calculateBBox();
+			
 			stream.close();
+			
+			System.out.println("Read from " + name);
 			return true;
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -231,6 +245,38 @@ public class CMCModel {
 	
 	public float getSize() {
 		return (float) Math.sqrt(getSizeX() * getSizeX() + getSizeY() * getSizeY() + getSizeZ() * getSizeZ());
+	}
+	
+	public void calculateBBox() {
+		boxMin.x = Float.MAX_VALUE;
+		boxMin.y = Float.MAX_VALUE;
+		boxMin.z = Float.MAX_VALUE;
+		boxMax.x = -Float.MAX_VALUE;
+		boxMax.y = -Float.MAX_VALUE;
+		boxMax.z = -Float.MAX_VALUE;
+		for(MaterialGroup material : materials) {
+			if(material.boxMin.x < boxMin.x) boxMin.x = material.boxMin.x;
+			if(material.boxMin.y < boxMin.y) boxMin.y = material.boxMin.y;
+			if(material.boxMin.z < boxMin.z) boxMin.z = material.boxMin.z;
+			if(material.boxMax.x > boxMax.x) boxMax.x = material.boxMax.x;
+			if(material.boxMax.y > boxMax.y) boxMax.y = material.boxMax.y;
+			if(material.boxMax.z > boxMax.z) boxMax.z = material.boxMax.z;
+		}
+	}
+	
+	private void writeIntToStream(FileOutputStream stream, int value) throws IOException {
+		stream.write((value >> 24) & 255);
+		stream.write((value >> 16) & 255);
+		stream.write((value >> 8) & 255);
+		stream.write(value & 255);
+	}
+	
+	private int readIntFromStream(FileInputStream stream) throws IOException {
+		int d = stream.read();
+		int c = stream.read();
+		int b = stream.read();
+		int a = stream.read();
+		return a + b * 256 + c * 256 * 256 + d * 256 * 256 * 256;
 	}
 
 }

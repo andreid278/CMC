@@ -64,9 +64,7 @@ public class DataLoadingHelper {
 	}
 	
 	public static void requestModelsInfo() {
-		if(Minecraft.getMinecraft().isSingleplayer()) {
-			System.out.println("Integrated server");
-			return;
-		}
+		MessageRequestModelsInfo message = new MessageRequestModelsInfo();
+		CMC.network.sendToServer(message);
 	}
 }

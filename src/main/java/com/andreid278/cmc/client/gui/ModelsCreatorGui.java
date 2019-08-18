@@ -62,7 +62,7 @@ public class ModelsCreatorGui extends GuiScreen {
 		switch(button.id) {
 		case 0:
 			UUID uuid = UUID.randomUUID();
-			ModelReader reader = new ModelReader(uuid);
+			ModelReader reader = new ModelReader(uuid, true);
 			CMCModel model = reader.getModel();
 			model.saveToFile(uuid.toString());
 			DataLoadingHelper.sendDataToServer(uuid, Minecraft.getMinecraft().player.getName(), "Name", true);

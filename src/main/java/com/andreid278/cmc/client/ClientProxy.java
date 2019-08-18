@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.andreid278.cmc.CMC;
+import com.andreid278.cmc.client.gui.ModelsSelectionGui;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.client.model.ModelReader;
 import com.andreid278.cmc.client.render.PlayerRenderer;
@@ -15,6 +16,7 @@ import com.andreid278.cmc.client.render.TETestRenderer;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.CommonProxy;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
+import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
 import com.andreid278.cmc.common.tileentity.TETest;
 
 import net.minecraft.client.Minecraft;
@@ -68,7 +70,7 @@ public class ClientProxy extends CommonProxy {
 		super.postInit(event);
 	}
 
-	private void createResourcePack() {
+	/*private void createResourcePack() {
 		Class mc = Minecraft.getMinecraft().getClass();
 		Field drp = null;
 		try {
@@ -104,7 +106,7 @@ public class ClientProxy extends CommonProxy {
 				e.printStackTrace();
 			}
 		}
-	}
+	}*/
 	
 	@Override
 	public IMessage onMessage(MessagePlayerLoggedIn message, MessageContext ctx) {
@@ -131,10 +133,20 @@ public class ClientProxy extends CommonProxy {
 			}
 		})) {
 			UUID uuid = UUID.fromString(f.substring(0, f.lastIndexOf(".")));
-			ModelReader reader = new ModelReader(uuid);
+			ModelReader reader = new ModelReader(uuid, false);
 			CMCModel model = reader.getModel();
 			ModelStorage.instance.addModel(uuid, model);
 			System.out.println(uuid.toString());
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public IMessage onMessage(MessageResponseModelsInfo message, MessageContext ctx) {
+		if(Minecraft.getMinecraft().currentScreen instanceof ModelsSelectionGui) {
+			ModelsSelectionGui gui = (ModelsSelectionGui) Minecraft.getMinecraft().currentScreen;
+			gui.updateModelsInfo(message.info);
 		}
 		
 		return null;

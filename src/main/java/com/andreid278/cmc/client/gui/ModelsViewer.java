@@ -1,6 +1,7 @@
 package com.andreid278.cmc.client.gui;
 
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -13,6 +14,7 @@ import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.common.ModelsInfo;
 import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
+import com.andreid278.cmc.common.network.DataLoadingHelper;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -37,6 +39,8 @@ public class ModelsViewer extends Gui {
 	public int curMouseX;
 	public int curMouseY;
 	
+	public Map<UUID, ModelInfo> modelsInfo = new LinkedHashMap<UUID, ModelsInfo.ModelInfo>();
+	
 	public ModelsViewer(int x, int y, int w, int h) {
 		this.x = x;
 		this.y = y;
@@ -52,7 +56,7 @@ public class ModelsViewer extends Gui {
 			}
 		}
 		
-		setRow(0);
+		DataLoadingHelper.requestModelsInfo();
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
@@ -116,7 +120,7 @@ public class ModelsViewer extends Gui {
 		
 		curRow = row;
 		
-		Map<UUID, ModelInfo> modelsInfo = ModelsInfo.instance.getAll();
+		//Map<UUID, ModelInfo> modelsInfo = ModelsInfo.instance.getAll();
 		Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
 		Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
 		
@@ -143,6 +147,15 @@ public class ModelsViewer extends Gui {
 		
 		for(int j = i; j <= finishIndex; j++) {
 			models[j - startIndex].setModel(null);
+		}
+	}
+	
+	public void updateModelsInfo(Map<UUID, ModelInfo> info) {
+		System.out.println("Update models viewer");
+		modelsInfo.putAll(info);
+		
+		if(curRow == -1) {
+			setRow(0);
 		}
 	}
 }

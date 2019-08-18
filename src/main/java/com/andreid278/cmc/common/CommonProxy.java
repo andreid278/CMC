@@ -5,6 +5,7 @@ import com.andreid278.cmc.client.gui.GuiHandler;
 import com.andreid278.cmc.common.block.TestBlock;
 import com.andreid278.cmc.common.event.PlayerEvents;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
+import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
 import com.andreid278.cmc.common.tileentity.TETest;
 
 import net.minecraft.block.Block;
@@ -64,6 +65,10 @@ public class CommonProxy {
 	}
 	
 	public IMessage onMessage(MessagePlayerLoggedIn message, MessageContext ctx) {
+		return null;
+	}
+	
+	public IMessage onMessage(MessageResponseModelsInfo message, MessageContext ctx) {
 		return null;
 	}
 }

@@ -51,11 +51,11 @@ public class MaterialGroup {
 			if(vertex.z > boxMax.z) boxMax.z = vertex.z;
 		}
 		
-		vertices.flip();
+		vertices.rewind();
 	}
 	
 	public void setColors(List<Integer> c) {
-		colors = ByteBuffer.allocateDirect(count * 4);
+		colors = ByteBuffer.allocateDirect(count * 3);
 		colors.order(ByteOrder.nativeOrder());
 		
 		for(int color : c) {
@@ -66,7 +66,7 @@ public class MaterialGroup {
 			//colors.put((byte) ((color >> 24) & 0xff));
 		}
 		
-		colors.flip();
+		colors.rewind();
 	}
 	
 	public byte[] toByteArray() {
@@ -101,5 +101,70 @@ public class MaterialGroup {
 		buffer.readBytes(byteArray);
 		
 		return byteArray;
+	}
+	
+	public void fromByteArray(byte[] data) {
+		ByteBuf buffer = Unpooled.wrappedBuffer(data);
+		
+		count = buffer.readInt();
+		
+		boolean verticesExist = buffer.readBoolean();
+		if(verticesExist) {
+			vertices = ByteBuffer.allocateDirect(count * 3 * 4);
+			vertices.order(ByteOrder.nativeOrder());
+			buffer.readBytes(vertices);
+			vertices.rewind();
+			
+			calculateBBox();
+		}
+		
+		// TODO size
+		boolean normalsExist = buffer.readBoolean();
+		/*if(normalsExist) {
+			normals = ByteBuffer.allocateDirect(count * 3 * 4);
+			normals.order(ByteOrder.nativeOrder());
+			buffer.readBytes(normals);
+			normals.rewind();
+		}*/
+		
+		boolean texCoordsExist = buffer.readBoolean();
+		/*if(texCoordsExist) {
+			texCoords = ByteBuffer.allocateDirect(count * 3 * 4);
+			texCoords.order(ByteOrder.nativeOrder());
+			buffer.readBytes(texCoords);
+			texCoords.rewind();
+		}*/
+		
+		boolean colorsExist = buffer.readBoolean();
+		if(colorsExist) {
+			colors = ByteBuffer.allocateDirect(count * 3);
+			colors.order(ByteOrder.nativeOrder());
+			buffer.readBytes(colors);
+			colors.rewind();
+		}
+	}
+	
+	public void calculateBBox() {
+		boxMin.x = Float.MAX_VALUE;
+		boxMin.y = Float.MAX_VALUE;
+		boxMin.z = Float.MAX_VALUE;
+		boxMax.x = -Float.MAX_VALUE;
+		boxMax.y = -Float.MAX_VALUE;
+		boxMax.z = -Float.MAX_VALUE;
+		
+		for(int i = 0; i < count; i++) {
+			float x = vertices.getFloat();
+			float y = vertices.getFloat();
+			float z = vertices.getFloat();
+			
+			if(x < boxMin.x) boxMin.x = x;
+			if(y < boxMin.y) boxMin.y = y;
+			if(z < boxMin.z) boxMin.z = z;
+			if(x > boxMax.x) boxMax.x = x;
+			if(y > boxMax.y) boxMax.y = y;
+			if(z > boxMax.z) boxMax.z = z;
+		}
+		
+		vertices.rewind();
 	}
 }

@@ -16,6 +16,9 @@ import java.util.UUID;
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.client.model.ModelReader;
+import com.google.common.base.Charsets;
+
+import io.netty.buffer.ByteBuf;
 
 public class ModelsInfo {
 	public static ModelsInfo instance = new ModelsInfo();
@@ -25,10 +28,32 @@ public class ModelsInfo {
 		public String name;
 		public boolean isPublic;
 		
+		public ModelInfo() {
+			author = "";
+			name = "";
+			isPublic = false;
+		}
+		
 		public ModelInfo(String author, String name, boolean isPublic) {
 			this.author = author;
 			this.name = name;
 			this.isPublic = isPublic;
+		}
+		
+		public void writeTo(ByteBuf buf) {
+			buf.writeInt(author.length());
+			buf.writeCharSequence(author, Charsets.UTF_8);
+			buf.writeInt(name.length());
+			buf.writeCharSequence(name, Charsets.UTF_8);
+			buf.writeBoolean(isPublic);
+		}
+		
+		public void readFrom(ByteBuf buf) {
+			int l = buf.readInt();
+			author = buf.readCharSequence(l, Charsets.UTF_8).toString();
+			l = buf.readInt();
+			name = buf.readCharSequence(l, Charsets.UTF_8).toString();
+			isPublic = buf.readBoolean();
 		}
 	}
 	

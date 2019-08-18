@@ -19,15 +19,6 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
 public class MessageRequestModelsInfo implements IMessage {
 	
-	public UUID uuid;
-	public int messageID;
-	public byte[] data;
-	public int dataSize;
-	public int dataPartSize;
-	String author;
-	String name;
-	boolean isPublic;
-	
 	public MessageRequestModelsInfo() {
 		
 	}
@@ -46,7 +37,9 @@ public class MessageRequestModelsInfo implements IMessage {
 
 		@Override
 		public IMessage onMessage(MessageRequestModelsInfo message, MessageContext ctx) {
-			return null;
+			System.out.println("Request for models info");
+			MessageResponseModelsInfo response = new MessageResponseModelsInfo(ModelsInfo.instance.getAll());
+			return response;
 		}
 		
 	}
