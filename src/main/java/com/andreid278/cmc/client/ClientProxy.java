@@ -16,6 +16,7 @@ import com.andreid278.cmc.client.render.TETestRenderer;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.CommonProxy;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
+import com.andreid278.cmc.common.network.MessageResponseModelsCount;
 import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
 import com.andreid278.cmc.common.tileentity.TETest;
 
@@ -149,6 +150,15 @@ public class ClientProxy extends CommonProxy {
 			gui.updateModelsInfo(message.info);
 		}
 		
+		return null;
+	}
+	
+	@Override
+	public IMessage onMessage(MessageResponseModelsCount message, MessageContext ctx) {
+		if(Minecraft.getMinecraft().currentScreen instanceof ModelsSelectionGui) {
+			ModelsSelectionGui gui = (ModelsSelectionGui) Minecraft.getMinecraft().currentScreen;
+			gui.updateModelsCount(message.count);
+		}
 		return null;
 	}
 }

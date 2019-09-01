@@ -7,15 +7,19 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.client.model.ModelReader;
+import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
 import com.google.common.base.Charsets;
 
 import io.netty.buffer.ByteBuf;
@@ -159,5 +163,32 @@ public class ModelsInfo {
 	
 	public Map<UUID, ModelInfo> getAll() {
 		return modelToInfoMap;
+	}
+	
+	public Map<UUID, ModelInfo> get(int startIndex, int count) {
+		Map<UUID, ModelInfo> result = new LinkedHashMap<>();
+		
+		Set<Entry<UUID, ModelInfo>> entrySet = modelToInfoMap.entrySet();
+		Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
+		int i = 0;
+		while(it.hasNext()) {
+			Entry<UUID, ModelInfo> entry = it.next();
+			
+			if(i >= startIndex && i < startIndex + count) {
+				result.put(entry.getKey(), entry.getValue());
+			}
+			
+			i++;
+			
+			if(i == startIndex + count) {
+				break;
+			}
+		}
+		
+		return result;
+	}
+	
+	public int getCount() {
+		return modelToInfoMap.size();
 	}
 }

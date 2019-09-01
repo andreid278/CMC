@@ -5,7 +5,9 @@ import com.andreid278.cmc.common.network.MessageDataToClient;
 import com.andreid278.cmc.common.network.MessageDataToServer;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
 import com.andreid278.cmc.common.network.MessageRequestDataFromServer;
+import com.andreid278.cmc.common.network.MessageRequestModelsCount;
 import com.andreid278.cmc.common.network.MessageRequestModelsInfo;
+import com.andreid278.cmc.common.network.MessageResponseModelsCount;
 import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
 
 import net.minecraftforge.fml.common.Mod;
@@ -42,9 +44,9 @@ public class CMC {
 		network.registerMessage(MessageDataToClient.Handler.class, MessageDataToClient.class, 3, Side.CLIENT);
 		network.registerMessage(MessageRequestModelsInfo.Handler.class, MessageRequestModelsInfo.class, 4, Side.SERVER);
 		network.registerMessage(MessageResponseModelsInfo.Handler.class, MessageResponseModelsInfo.class, 5, Side.CLIENT);
-		/*network.registerMessage(MessageRequestForPhoto.Handler.class, MessageRequestForPhoto.class, 6, Side.SERVER);
-		network.registerMessage(PhotoLoaderToClient.Handler.class, PhotoLoaderToClient.class, 7, Side.CLIENT);
-		network.registerMessage(MessageRequestNoPhoto.Handler.class, MessageRequestNoPhoto.class, 8, Side.CLIENT);
+		network.registerMessage(MessageRequestModelsCount.Handler.class, MessageRequestModelsCount.class, 6, Side.SERVER);
+		network.registerMessage(MessageResponseModelsCount.Handler.class, MessageResponseModelsCount.class, 7, Side.CLIENT);
+		/*network.registerMessage(MessageRequestNoPhoto.Handler.class, MessageRequestNoPhoto.class, 8, Side.CLIENT);
 		network.registerMessage(MessagePrinterToClient.Handler.class, MessagePrinterToClient.class, 9, Side.CLIENT);
 		network.registerMessage(MessagePrinterToServer.Handler.class, MessagePrinterToServer.class, 10, Side.SERVER);
 		network.registerMessage(MessagePainterToClient.Handler.class, MessagePainterToClient.class, 11, Side.CLIENT);

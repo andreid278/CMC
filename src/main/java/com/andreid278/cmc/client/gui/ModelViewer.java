@@ -103,4 +103,8 @@ public class ModelViewer extends Gui {
 	public boolean isMouseInside(int mouseX, int mouseY) {
 		return mouseX >= x && mouseX < x + w && mouseY > y && mouseY < y + h;
 	}
+	
+	public void resetTransformation() {
+		rotation.setIdentity();
+	}
 }

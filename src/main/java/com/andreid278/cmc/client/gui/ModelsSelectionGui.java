@@ -78,4 +78,8 @@ public class ModelsSelectionGui extends GuiScreen {
 	public void updateModelsInfo(Map<UUID, ModelInfo> info) {
 		modelsViewer.updateModelsInfo(info);
 	}
+	
+	public void updateModelsCount(int count) {
+		modelsViewer.updateModelsCount(count);
+	}
 }

@@ -1,7 +1,9 @@
 package com.andreid278.cmc.client.gui;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,16 +32,41 @@ public class ModelsViewer extends Gui {
 	public static int rowCount = 3;
 	public static int colCount = 3;
 	
-	public int curRow = -1;
 	public ModelViewer[] models = new ModelViewer[rowCount * colCount];
 	public int modelWidth;
 	public int modelHeight;
 	public int margin = 5;
 	
+	public int bottomHeight = 10;
+	
 	public int curMouseX;
 	public int curMouseY;
 	
-	public Map<UUID, ModelInfo> modelsInfo = new LinkedHashMap<UUID, ModelsInfo.ModelInfo>();
+	public int modelsCount = 0;
+	public boolean isCurPageInited = false;
+	public int curPage = -1;
+	public int curNumberOfInitedModels = 0;
+	public boolean isModelsCountInited = false;
+	
+	public Map<UUID, ModelInfo> modelsInfo = new LinkedHashMap<UUID, ModelInfo>();
+	
+	public String pagesStr = "";
+	private class Page {
+		public int pageIndex;
+		public int minX;
+		public int minY;
+		public int maxX;
+		public int maxY;
+		
+		public Page(int pageIndex, int minX, int minY, int maxX, int maxY) {
+			this.pageIndex = pageIndex;
+			this.minX = minX;
+			this.minY = minY;
+			this.maxX = maxX;
+			this.maxY = maxY;
+		}
+	}
+	public List<Page> pagesIndices = new ArrayList<>();
 	
 	public ModelsViewer(int x, int y, int w, int h) {
 		this.x = x;
@@ -48,7 +75,7 @@ public class ModelsViewer extends Gui {
 		this.h = h;
 		
 		modelWidth = (w - (colCount + 1) * margin) / colCount;
-		modelHeight = (h - (rowCount + 1) * margin) / rowCount;
+		modelHeight = (h - bottomHeight - (rowCount + 1) * margin) / rowCount;
 		
 		for(int i = 0; i < rowCount; i++) {
 			for(int j = 0; j < colCount; j++) {
@@ -56,7 +83,12 @@ public class ModelsViewer extends Gui {
 			}
 		}
 		
-		DataLoadingHelper.requestModelsInfo();
+		isCurPageInited = false;
+		curPage = -1;
+		curNumberOfInitedModels = 0;
+		isModelsCountInited = false;
+		
+		DataLoadingHelper.requestModelsCount();
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
@@ -68,9 +100,51 @@ public class ModelsViewer extends Gui {
 		
 		GuiUtils.drawFilledRectangle(x, y, x + w, y + h, 255, 255, 255);
 		
+		if(!isModelsCountInited || !isCurPageInited) {
+			return;
+		}
+		
+		if(curNumberOfInitedModels < modelsInfo.size()) {
+			Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
+			Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
+			int i = 0;
+			while(it.hasNext()) {
+				if(i >= rowCount * colCount) {
+					curNumberOfInitedModels = modelsInfo.size();
+					break;
+				}
+				
+				UUID uuid = it.next().getKey();
+				
+				if(i == curNumberOfInitedModels) {
+					if(ModelStorage.instance.hasModel(uuid)) {
+						models[i].setModel(ModelStorage.instance.getModel(uuid));
+						curNumberOfInitedModels++;
+					}
+					else {
+						DataLoadingHelper.requestData(uuid);
+						break;
+					}
+				}
+				
+				i++;
+			}
+		}
+		
 		for(int i = 0; i < rowCount * colCount; i++) {
 			models[i].draw(mc, mouseX, mouseY);
 		}
+		
+		drawPagesNumbers(mc, mouseX, mouseY);
+	}
+	
+	private void drawPagesNumbers(Minecraft mc, int mouseX, int mouseY) {
+		if(curPage == -1) {
+			return;
+		}
+		
+		
+		mc.fontRenderer.drawString(pagesStr, x + w / 2 - mc.fontRenderer.getStringWidth(pagesStr) / 2, y + h - bottomHeight, 0x000000);
 	}
 	
 	public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
@@ -80,6 +154,16 @@ public class ModelsViewer extends Gui {
 		
 		for(int i = 0; i < rowCount * colCount; i++) {
 			models[i].mouseClicked(mouseX, mouseY, mouseButton);
+		}
+		
+		if(isMouseInsidePages(mouseX, mouseY)) {
+			for(int i = 0; i < pagesIndices.size(); i++) {
+				Page page = pagesIndices.get(i);
+				if(isMouseOverlapPage(mouseX, mouseY, page)) {
+					setPage(page.pageIndex);
+					break;
+				}
+			}
 		}
 	}
 	
@@ -110,52 +194,111 @@ public class ModelsViewer extends Gui {
 	}
 	
 	public boolean isMouseInside(int mouseX, int mouseY) {
-		return mouseX >= x && mouseX < x + w && mouseY > y && mouseY < y + h;
+		return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
 	}
 	
-	public void setRow(int row) {
-		if(row == curRow) {
+	public boolean isMouseInsidePages(int mouseX, int mouseY) {
+		return mouseX >= x && mouseX < x + w && mouseY >= y + h - bottomHeight && mouseY < y + h;
+	}
+	
+	public boolean isMouseOverlapPage(int mouseX, int mouseY, Page page) {
+		return mouseX >= page.minX && mouseX < page.maxX && mouseY >= page.minY && mouseY < page.maxY;
+	}
+	
+	public void setPage(int page) {
+		if(curPage == page) {
 			return;
 		}
 		
-		curRow = row;
+		curPage = page;
+		isCurPageInited = false;
+		curNumberOfInitedModels = 0;
+		modelsInfo.clear();
 		
-		//Map<UUID, ModelInfo> modelsInfo = ModelsInfo.instance.getAll();
-		Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
-		Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
+		DataLoadingHelper.requestModelsInfo(curPage * rowCount * colCount, rowCount * colCount);
 		
-		int startIndex = row * colCount;
-		int finishIndex = startIndex + rowCount * colCount - 1;
-		
-		int i = 0;
-		while(it.hasNext()) {
-			if(i >= startIndex) {
-				UUID uuid = it.next().getKey();
-				if(ModelStorage.instance.hasModel(uuid)) {
-					models[i - startIndex].setModel(ModelStorage.instance.getModel(uuid));
-				}
-				else {
-					models[i - startIndex].setModel(null);
-				}
-			}
-			
-			i++;
-			if(i > finishIndex) {
-				break;
-			}
+		for(int j = 0; j < rowCount * colCount; j++) {
+			models[j].setModel(null);
+			models[j].resetTransformation();
 		}
 		
-		for(int j = i; j <= finishIndex; j++) {
-			models[j - startIndex].setModel(null);
+		pagesIndices.clear();
+		
+		int range = 2;
+		
+		int startIndex = Math.max(0, curPage - range) + 1;
+		int finishIndex = Math.min((modelsCount - 1) / (rowCount * colCount), curPage + range) + 1;
+		
+		pagesStr = "";
+		String str = "";
+		
+		Minecraft mc = Minecraft.getMinecraft();
+		
+		str = "<<";
+		pagesIndices.add(new Page(0,
+				mc.fontRenderer.getStringWidth(pagesStr),
+				0,
+				mc.fontRenderer.getStringWidth(str),
+				mc.fontRenderer.FONT_HEIGHT));
+		pagesStr = str + " ";
+		str += " <";
+		pagesIndices.add(new Page(Math.max(0, curPage - 1),
+				mc.fontRenderer.getStringWidth(pagesStr),
+				0,
+				mc.fontRenderer.getStringWidth(str),
+				mc.fontRenderer.FONT_HEIGHT));
+		
+		for(int i = startIndex; i <= finishIndex; i++) {
+			pagesStr = str + " ";
+			str += " " + i;
+			pagesIndices.add(new Page(i - 1,
+					mc.fontRenderer.getStringWidth(pagesStr),
+					0,
+					mc.fontRenderer.getStringWidth(str),
+					mc.fontRenderer.FONT_HEIGHT));
+		}
+		
+		pagesStr = str + " ";
+		str += " >";
+		pagesIndices.add(new Page(Math.min((modelsCount - 1) / (rowCount * colCount), curPage + 1),
+				mc.fontRenderer.getStringWidth(pagesStr),
+				0,
+				mc.fontRenderer.getStringWidth(str),
+				mc.fontRenderer.FONT_HEIGHT));
+		
+		pagesStr = str + " ";
+		str += " >>";
+		pagesIndices.add(new Page((modelsCount - 1) / (rowCount * colCount),
+				mc.fontRenderer.getStringWidth(pagesStr),
+				0,
+				mc.fontRenderer.getStringWidth(str),
+				mc.fontRenderer.FONT_HEIGHT));
+		
+		pagesStr = str;
+		
+		int xOffset = x + w / 2 - mc.fontRenderer.getStringWidth(pagesStr) / 2;
+		int yOffset = y + h - bottomHeight;
+		for(int i = 0; i < pagesIndices.size(); i++) {
+			Page pageInfo = pagesIndices.get(i);
+			pageInfo.minX += xOffset;
+			pageInfo.minY += yOffset;
+			pageInfo.maxX += xOffset;
+			pageInfo.maxY += yOffset;
 		}
 	}
 	
 	public void updateModelsInfo(Map<UUID, ModelInfo> info) {
 		System.out.println("Update models viewer");
+		
 		modelsInfo.putAll(info);
 		
-		if(curRow == -1) {
-			setRow(0);
-		}
+		isCurPageInited = true;
+	}
+	
+	public void updateModelsCount(int count) {
+		modelsCount = count;
+		isModelsCountInited = true;
+		
+		setPage(0);
 	}
 }

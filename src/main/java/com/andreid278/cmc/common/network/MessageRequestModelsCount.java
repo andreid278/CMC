@@ -17,37 +17,28 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class MessageRequestModelsInfo implements IMessage {
-	public int startIndex;
-	public int count;
+public class MessageRequestModelsCount implements IMessage {
 	
-	public MessageRequestModelsInfo() {
+	public MessageRequestModelsCount() {
 		
-	}
-	
-	public MessageRequestModelsInfo(int startIndex, int count) {
-		this.startIndex = startIndex;
-		this.count = count;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
-		startIndex = buf.readInt();
-		count = buf.readInt();
+		
 	}
 
 	@Override
 	public void toBytes(ByteBuf buf) {
-		buf.writeInt(startIndex);
-		buf.writeInt(count);
+		
 	}
 	
-	public static class Handler implements IMessageHandler<MessageRequestModelsInfo, IMessage> {
+	public static class Handler implements IMessageHandler<MessageRequestModelsCount, IMessage> {
 
 		@Override
-		public IMessage onMessage(MessageRequestModelsInfo message, MessageContext ctx) {
-			System.out.println("Request for models info");
-			MessageResponseModelsInfo response = new MessageResponseModelsInfo(ModelsInfo.instance.get(message.startIndex, message.count));
+		public IMessage onMessage(MessageRequestModelsCount message, MessageContext ctx) {
+			System.out.println("Request for models count");
+			MessageResponseModelsCount response = new MessageResponseModelsCount(ModelsInfo.instance.getCount());
 			return response;
 		}
 		

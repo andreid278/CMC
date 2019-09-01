@@ -51,11 +51,6 @@ public class DataLoadingHelper {
 			return;
 		}
 		
-		if(Minecraft.getMinecraft().isSingleplayer()) {
-			System.out.println("Client : can't find file " + CMCData.instance.dataPathClient + CMCData.instance.curWorldPath + uuid.toString() + "." + CMCData.instance.fileExt);
-			return;
-		}
-		
 		requestDataFromServer(uuid);
 	}
 	
@@ -63,8 +58,13 @@ public class DataLoadingHelper {
 		
 	}
 	
-	public static void requestModelsInfo() {
-		MessageRequestModelsInfo message = new MessageRequestModelsInfo();
+	public static void requestModelsInfo(int startIndex, int count) {
+		MessageRequestModelsInfo message = new MessageRequestModelsInfo(startIndex, count);
+		CMC.network.sendToServer(message);
+	}
+	
+	public static void requestModelsCount() {
+		MessageRequestModelsCount message = new MessageRequestModelsCount();
 		CMC.network.sendToServer(message);
 	}
 }
