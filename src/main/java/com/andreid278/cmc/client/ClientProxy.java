@@ -15,9 +15,11 @@ import com.andreid278.cmc.client.render.PlayerRenderer;
 import com.andreid278.cmc.client.render.TETestRenderer;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.CommonProxy;
+import com.andreid278.cmc.common.network.MessageBroadcastResetPlayerModels;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
 import com.andreid278.cmc.common.network.MessageResponseModelsCount;
 import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
+import com.andreid278.cmc.common.network.MessageResponsePlayerModels;
 import com.andreid278.cmc.common.tileentity.TETest;
 
 import net.minecraft.client.Minecraft;
@@ -158,6 +160,26 @@ public class ClientProxy extends CommonProxy {
 		if(Minecraft.getMinecraft().currentScreen instanceof ModelsSelectionGui) {
 			ModelsSelectionGui gui = (ModelsSelectionGui) Minecraft.getMinecraft().currentScreen;
 			gui.updateModelsCount(message.count);
+		}
+		return null;
+	}
+	
+	@Override
+	public IMessage onMessage(MessageResponsePlayerModels message, MessageContext ctx) {
+		if(CMCData.instance.playersModels.containsKey(message.uuid)) {
+			CMCData.instance.playersModels.remove(message.uuid);
+		}
+		CMCData.instance.playersModels.put(message.uuid, message.models);
+		return null;
+	}
+	
+	@Override
+	public IMessage onMessage(MessageBroadcastResetPlayerModels message, MessageContext ctx) {
+		if(Minecraft.getMinecraft().player.getUniqueID().equals(message.uuid)) {
+			return null;
+		}
+		if(CMCData.instance.playersModels.containsKey(message.uuid)) {
+			CMCData.instance.playersModels.remove(message.uuid);
 		}
 		return null;
 	}

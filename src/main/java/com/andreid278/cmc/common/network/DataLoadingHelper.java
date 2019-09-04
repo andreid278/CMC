@@ -1,13 +1,18 @@
 package com.andreid278.cmc.common.network;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.ModelStorage;
+import com.andreid278.cmc.client.model.CMCModelOnPlayer;
 import com.andreid278.cmc.common.CMCData;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.Matrix4f;
 
 public class DataLoadingHelper {
 	public static DataLoadingHelper instance = new DataLoadingHelper();
@@ -54,10 +59,6 @@ public class DataLoadingHelper {
 		requestDataFromServer(uuid);
 	}
 	
-	public static void sendDataToClient(UUID player, UUID uuid) {
-		
-	}
-	
 	public static void requestModelsInfo(int startIndex, int count) {
 		MessageRequestModelsInfo message = new MessageRequestModelsInfo(startIndex, count);
 		CMC.network.sendToServer(message);
@@ -65,6 +66,37 @@ public class DataLoadingHelper {
 	
 	public static void requestModelsCount() {
 		MessageRequestModelsCount message = new MessageRequestModelsCount();
+		CMC.network.sendToServer(message);
+	}
+	
+	public static void requestPlayerModels(UUID uuid) {
+		CMCData.instance.playersModels.put(uuid, new ArrayList<CMCModelOnPlayer>());
+		MessageRequestPlayerModels message = new MessageRequestPlayerModels(uuid);
+		CMC.network.sendToServer(message);
+	}
+	
+	public static void chooseModel(UUID uuid, Matrix4f location) {
+		UUID playerUUID = Minecraft.getMinecraft().player.getUniqueID();
+		List<CMCModelOnPlayer> list = null;
+		if(CMCData.instance.playersModels.containsKey(playerUUID)) {
+			list = CMCData.instance.playersModels.get(playerUUID);
+		}
+		else {
+			list = new ArrayList<>();
+			CMCData.instance.playersModels.put(playerUUID, list);
+		}
+		for(Iterator<CMCModelOnPlayer> it = list.iterator(); it.hasNext(); ) {
+			if(it.next().uuid.equals(uuid)) {
+				it.remove();
+				break;
+			}
+		}
+		list.add(new CMCModelOnPlayer(uuid, location));
+		
+		if(Minecraft.getMinecraft().isSingleplayer()) {
+			return;
+		}
+		MessageChooseModel message = new MessageChooseModel(uuid, location);
 		CMC.network.sendToServer(message);
 	}
 }

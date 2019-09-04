@@ -24,6 +24,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
 
 public class ModelsViewer extends Gui {
+	ModelsSelectionGui parent;
 	public int x;
 	public int y;
 	public int w;
@@ -68,7 +69,8 @@ public class ModelsViewer extends Gui {
 	}
 	public List<Page> pagesIndices = new ArrayList<>();
 	
-	public ModelsViewer(int x, int y, int w, int h) {
+	public ModelsViewer(ModelsSelectionGui parent, int x, int y, int w, int h) {
+		this.parent = parent;
 		this.x = x;
 		this.y = y;
 		this.w = w;
@@ -153,7 +155,24 @@ public class ModelsViewer extends Gui {
 		}
 		
 		for(int i = 0; i < rowCount * colCount; i++) {
-			models[i].mouseClicked(mouseX, mouseY, mouseButton);
+			if(models[i].isMouseInside(mouseX, mouseY)) {
+				if(models[i].model != null) {
+					Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
+					Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
+					int j = 0;
+					while(it.hasNext()) {
+						if(j == i) {
+							parent.viewModel(it.next().getKey());
+							break;
+						}
+						else {
+							j++;
+							it.next();
+						}
+					}
+				}
+				break;
+			}
 		}
 		
 		if(isMouseInsidePages(mouseX, mouseY)) {
@@ -168,19 +187,19 @@ public class ModelsViewer extends Gui {
 	}
 	
 	public boolean mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
-		if(isMouseInside(mouseX, mouseY)) {
+		/*if(isMouseInside(mouseX, mouseY)) {
 			for(int i = 0; i < rowCount * colCount; i++) {
 				models[i].mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 			}
 			return true;
-		}
+		}*/
 		return false;
 	}
 	
 	public void mouseReleased(int mouseX, int mouseY, int state) {
-		for(int i = 0; i < rowCount * colCount; i++) {
+		/*for(int i = 0; i < rowCount * colCount; i++) {
 			models[i].mouseReleased(mouseX, mouseY, state);
-		}
+		}*/
 	}
 	
 	public void handleMouseInput() {
@@ -188,9 +207,9 @@ public class ModelsViewer extends Gui {
 			return;
 		}
 		
-		for(int i = 0; i < rowCount * colCount; i++) {
+		/*for(int i = 0; i < rowCount * colCount; i++) {
 			models[i].handleMouseInput();
-		}
+		}*/
 	}
 	
 	public boolean isMouseInside(int mouseX, int mouseY) {

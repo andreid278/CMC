@@ -2,8 +2,10 @@ package com.andreid278.cmc.client.render;
 
 import java.util.List;
 
+import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModelOnPlayer;
 import com.andreid278.cmc.common.CMCData;
+import com.andreid278.cmc.common.network.DataLoadingHelper;
 
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -13,6 +15,7 @@ public class PlayerRenderer {
 	@SubscribeEvent
 	public void renderPlayer(RenderPlayerEvent.Post event) {
 		if(!CMCData.instance.playersModels.containsKey(event.getEntityPlayer().getUniqueID())) {
+			DataLoadingHelper.requestPlayerModels(event.getEntityPlayer().getUniqueID());
 			return;
 		}
 		
@@ -23,11 +26,16 @@ public class PlayerRenderer {
 		}
 		
 		for(CMCModelOnPlayer modelOnPlayer : modelsList) {
-			GlStateManager.pushMatrix();
-			modelOnPlayer.locationFloatBuffer.rewind();
-			GlStateManager.multMatrix(modelOnPlayer.locationFloatBuffer);
-			modelOnPlayer.model.draw();
-			GlStateManager.popMatrix();
+			if(ModelStorage.instance.hasModel(modelOnPlayer.uuid)) {
+				GlStateManager.pushMatrix();
+				modelOnPlayer.locationFloatBuffer.rewind();
+				GlStateManager.multMatrix(modelOnPlayer.locationFloatBuffer);
+				ModelStorage.instance.getModel(modelOnPlayer.uuid).draw();
+				GlStateManager.popMatrix();
+			}
+			else {
+				DataLoadingHelper.requestDataFromServer(modelOnPlayer.uuid);
+			}
 		}
 	}
 }

@@ -1,14 +1,18 @@
 package com.andreid278.cmc;
 
 import com.andreid278.cmc.common.CommonProxy;
+import com.andreid278.cmc.common.network.MessageBroadcastResetPlayerModels;
+import com.andreid278.cmc.common.network.MessageChooseModel;
 import com.andreid278.cmc.common.network.MessageDataToClient;
 import com.andreid278.cmc.common.network.MessageDataToServer;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
 import com.andreid278.cmc.common.network.MessageRequestDataFromServer;
 import com.andreid278.cmc.common.network.MessageRequestModelsCount;
 import com.andreid278.cmc.common.network.MessageRequestModelsInfo;
+import com.andreid278.cmc.common.network.MessageRequestPlayerModels;
 import com.andreid278.cmc.common.network.MessageResponseModelsCount;
 import com.andreid278.cmc.common.network.MessageResponseModelsInfo;
+import com.andreid278.cmc.common.network.MessageResponsePlayerModels;
 
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -46,11 +50,11 @@ public class CMC {
 		network.registerMessage(MessageResponseModelsInfo.Handler.class, MessageResponseModelsInfo.class, 5, Side.CLIENT);
 		network.registerMessage(MessageRequestModelsCount.Handler.class, MessageRequestModelsCount.class, 6, Side.SERVER);
 		network.registerMessage(MessageResponseModelsCount.Handler.class, MessageResponseModelsCount.class, 7, Side.CLIENT);
-		/*network.registerMessage(MessageRequestNoPhoto.Handler.class, MessageRequestNoPhoto.class, 8, Side.CLIENT);
-		network.registerMessage(MessagePrinterToClient.Handler.class, MessagePrinterToClient.class, 9, Side.CLIENT);
-		network.registerMessage(MessagePrinterToServer.Handler.class, MessagePrinterToServer.class, 10, Side.SERVER);
-		network.registerMessage(MessagePainterToClient.Handler.class, MessagePainterToClient.class, 11, Side.CLIENT);
-		network.registerMessage(MessagePainterToServer.Handler.class, MessagePainterToServer.class, 12, Side.SERVER);
+		network.registerMessage(MessageRequestPlayerModels.Handler.class, MessageRequestPlayerModels.class, 8, Side.SERVER);
+		network.registerMessage(MessageResponsePlayerModels.Handler.class, MessageResponsePlayerModels.class, 9, Side.CLIENT);
+		network.registerMessage(MessageChooseModel.Handler.class, MessageChooseModel.class, 10, Side.SERVER);
+		network.registerMessage(MessageBroadcastResetPlayerModels.Handler.class, MessageBroadcastResetPlayerModels.class, 11, Side.CLIENT);
+		/*network.registerMessage(MessagePainterToServer.Handler.class, MessagePainterToServer.class, 12, Side.SERVER);
 		network.registerMessage(MessageDeletePhotoRequest.Handler.class, MessageDeletePhotoRequest.class, 13, Side.SERVER);
 		network.registerMessage(MessageDeletePhotoToClients.Handler.class, MessageDeletePhotoToClients.class, 14, Side.CLIENT);*/
 		proxy.preInit(event);
