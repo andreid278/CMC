@@ -25,6 +25,7 @@ public class ModelsSelectionGui extends GuiScreen {
 		super.initGui();
 		
 		modelsViewer = new ModelsViewer(this, 10, 10, 200, 200);
+		modelsViewer.afterCreation();
 		choosenModelViewer = new ModelViewer(250, 10, 100, 100);
 		choosenModelUUID = null;
 		//if(!ModelStorage.instance.isEmpty()) {
@@ -98,6 +99,7 @@ public class ModelsSelectionGui extends GuiScreen {
 	}
 	
 	public void updateModelsCount(int count) {
+		if(modelsViewer == null) System.out.println("1");
 		modelsViewer.updateModelsCount(count);
 	}
 	

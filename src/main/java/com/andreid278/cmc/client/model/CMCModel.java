@@ -15,9 +15,16 @@ import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;
 
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL32;
 
 import com.andreid278.cmc.common.CMCData;
+import com.andreid278.cmc.utils.MathUtils;
+import com.andreid278.cmc.utils.MathUtils.Box3f;
 import com.google.common.collect.Lists;
 
 import net.minecraft.client.renderer.GlStateManager;
@@ -30,16 +37,10 @@ import net.minecraft.client.renderer.vertex.VertexFormatElement;
 
 public class CMCModel {
 	private List<MaterialGroup> materials = Lists.newArrayList();
-	public Vector3f boxMin = new Vector3f();
-	public Vector3f boxMax = new Vector3f();
+	public Box3f bBox = MathUtils.instance.new Box3f();
 
 	public CMCModel() {
-		boxMin.x = Float.MAX_VALUE;
-		boxMin.y = Float.MAX_VALUE;
-		boxMin.z = Float.MAX_VALUE;
-		boxMax.x = -Float.MAX_VALUE;
-		boxMax.y = -Float.MAX_VALUE;
-		boxMax.z = -Float.MAX_VALUE;
+		
 	}
 	
 	public CMCModel(List<MaterialGroup> materials) {
@@ -54,37 +55,38 @@ public class CMCModel {
 
 		int shadeModel = GL11.glGetInteger(GL11.GL_SHADE_MODEL);
 		GlStateManager.shadeModel(GL11.GL_SMOOTH);
+		
+		boolean oldCulling = GL11.glGetBoolean(GL11.GL_CULL_FACE);
+		GL11.glDisable(GL11.GL_CULL_FACE);
 
 		for(int i = 0; i < materials.size(); i++) {
 			MaterialGroup material = materials.get(i);
-
-			int offset = 0;
+			
+			if(!material.isValid) continue;
+			
+			material.rewind();
 
 			OpenGlHelper.glBindBuffer(OpenGlHelper.GL_ARRAY_BUFFER, 0);
-
+			
 			GlStateManager.glEnableClientState(GL11.GL_VERTEX_ARRAY);
 			GlStateManager.glVertexPointer(3, GL11.GL_FLOAT, 0, material.vertices);
-			offset += 12;
 
-			if(material.colors != null) {
+			if(material.colorsCount > 0) {
 				GlStateManager.glEnableClientState(GL11.GL_COLOR_ARRAY);
 				GlStateManager.glColorPointer(3, GL11.GL_UNSIGNED_BYTE, 0, material.colors);
-				offset += 4;
 			}
 
-			if(material.normals != null) {
+			if(material.normalsCount > 0) {
 				GlStateManager.glEnableClientState(GL11.GL_NORMAL_ARRAY);
-				GL11.glNormalPointer(GL11.GL_FLOAT, material.vertexSize, material.normals);
-				offset += 12;
+				GL11.glNormalPointer(GL11.GL_FLOAT, 0, material.normals);
 			}
 
-			if(material.texCoords != null) {
+			if(material.texCoordsCount > 0) {
 				GlStateManager.glEnableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
-				GlStateManager.glTexCoordPointer(2, GL11.GL_FLOAT, material.vertexSize, material.texCoords);
-				offset += 8;
+				GlStateManager.glTexCoordPointer(2, GL11.GL_FLOAT, 0, material.texCoords);
 			}
-
-			GlStateManager.glDrawArrays(GL11.GL_TRIANGLES, 0, material.count);
+			
+			GL11.glDrawElements(GL11.GL_TRIANGLES, material.indicesCount * 3, GL11.GL_UNSIGNED_INT, material.indices);
 
 			GlStateManager.glDisableClientState(GL11.GL_VERTEX_ARRAY);
 
@@ -101,44 +103,11 @@ public class CMCModel {
 				GlStateManager.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
 			}
 		}
-
-		/*ByteBuffer bBuff = ByteBuffer.allocateDirect(9 * 4);
-	    bBuff.order(ByteOrder.nativeOrder());
-	    FloatBuffer f = bBuff.asFloatBuffer();
-		f.put(0.0f);
-		f.put(0.0f);
-		f.put(0.0f);
-		f.put(1.0f);
-		f.put(1.0f);
-		f.put(1.0f);
-		f.put(1.0f);
-		f.put(0.0f);
-		f.put(0.0f);
-
-		f.flip();
-		GlStateManager.glEnableClientState(GL11.GL_VERTEX_ARRAY);
-		GL11.glVertexPointer(3, 0, f);
-		GlStateManager.glDrawArrays(GL11.GL_TRIANGLES, 0, 3);
-		GlStateManager.glDisableClientState(GL11.GL_VERTEX_ARRAY);*/
-
-		//GL11.glDisable(GL11.GL_LIGHTING);
-		//GL11.glDisable(GL11.GL_LIGHT0);
-		/*GlStateManager.disableLighting();
-		GlStateManager.disableLight(0);
-		GlStateManager.disableColorMaterial();
-		GlStateManager.disableBlend();
-		GlStateManager.disableColorLogic();
-		GlStateManager.disableTexture2D();*/
-		/*GL11.glShadeModel(GL11.GL_SMOOTH);
-		GL11.glBegin(GL11.GL_TRIANGLES);
-		GL11.glColor3f(1.0f, 1.0f, 1.0f);
-		GL11.glVertex3f(0, 0, 0);
-		GL11.glColor3f(1.0f, 0.0f, 1.0f);
-		GL11.glVertex3f(1, 1, 1);
-		GL11.glColor3f(1.0f, 1.0f, 1.0f);
-		GL11.glVertex3f(1, 0, 0);
-		GL11.glEnd();*/
-
+		
+		if(oldCulling) {
+			GL11.glEnable(GL11.GL_CULL_FACE);
+		}
+		
 		GlStateManager.shadeModel(shadeModel);
 
 		if(tex2d) {
@@ -196,7 +165,7 @@ public class CMCModel {
 				byte[] materialData = new byte[materialDataSize];
 				stream.read(materialData, 0, materialDataSize);
 				
-				MaterialGroup group = new MaterialGroup(0);
+				MaterialGroup group = new MaterialGroup();
 				group.fromByteArray(materialData);
 				materials.add(group);
 			}
@@ -219,48 +188,11 @@ public class CMCModel {
 		return false;
 	}
 	
-	public float getCenterX() {
-		return (boxMin.x + boxMax.x) * 0.5f;
-	}
-	
-	public float getCenterY() {
-		return (boxMin.y + boxMax.y) * 0.5f;
-	}
-	
-	public float getCenterZ() {
-		return (boxMin.z + boxMax.z) * 0.5f;
-	}
-	
-	public float getSizeX() {
-		return boxMax.x - boxMin.x;
-	}
-	
-	public float getSizeY() {
-		return boxMax.y - boxMin.y;
-	}
-	
-	public float getSizeZ() {
-		return boxMax.z - boxMin.z;
-	}
-	
-	public float getSize() {
-		return (float) Math.sqrt(getSizeX() * getSizeX() + getSizeY() * getSizeY() + getSizeZ() * getSizeZ());
-	}
-	
 	public void calculateBBox() {
-		boxMin.x = Float.MAX_VALUE;
-		boxMin.y = Float.MAX_VALUE;
-		boxMin.z = Float.MAX_VALUE;
-		boxMax.x = -Float.MAX_VALUE;
-		boxMax.y = -Float.MAX_VALUE;
-		boxMax.z = -Float.MAX_VALUE;
+		bBox.reset();
+		
 		for(MaterialGroup material : materials) {
-			if(material.boxMin.x < boxMin.x) boxMin.x = material.boxMin.x;
-			if(material.boxMin.y < boxMin.y) boxMin.y = material.boxMin.y;
-			if(material.boxMin.z < boxMin.z) boxMin.z = material.boxMin.z;
-			if(material.boxMax.x > boxMax.x) boxMax.x = material.boxMax.x;
-			if(material.boxMax.y > boxMax.y) boxMax.y = material.boxMax.y;
-			if(material.boxMax.z > boxMax.z) boxMax.z = material.boxMax.z;
+			bBox.union(material.bBox);
 		}
 	}
 	

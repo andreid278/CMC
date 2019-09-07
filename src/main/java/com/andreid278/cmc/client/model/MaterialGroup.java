@@ -4,98 +4,171 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
 
-import javax.vecmath.Vector3f;
-import javax.vecmath.Vector4f;
-
 import org.apache.http.util.ByteArrayBuffer;
+
+import com.andreid278.cmc.utils.MathUtils;
+import com.andreid278.cmc.utils.MathUtils.Box3f;
+import com.andreid278.cmc.utils.MathUtils.Vec2f;
+import com.andreid278.cmc.utils.MathUtils.Vec3f;
+import com.andreid278.cmc.utils.MathUtils.Vec3i;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class MaterialGroup {
+	public ByteBuffer indices = null;
+	public int indicesCount = 0;
 	public ByteBuffer vertices = null;
-	public ByteBuffer normals = null;
-	public ByteBuffer texCoords = null;
+	public int verticesCount = 0;
 	public ByteBuffer colors = null;
+	public int colorsCount = 0;
+	public ByteBuffer normals = null;
+	public int normalsCount = 0;
+	public ByteBuffer texCoords = null;
+	public int texCoordsCount = 0;
 	
-	public int vertexSize = 0;
-	public int count = 0;
+	public Box3f bBox = MathUtils.instance.new Box3f();
 	
-	public Vector3f boxMin = new Vector3f();
-	public Vector3f boxMax = new Vector3f();
+	public boolean isValid = false;
 
-	public MaterialGroup(int count) {
-		this.count = count;
+	public MaterialGroup() {
+		
 	}
 	
-	public void setVertices(List<Vector3f> v) {
-		boxMin.x = Float.MAX_VALUE;
-		boxMin.y = Float.MAX_VALUE;
-		boxMin.z = Float.MAX_VALUE;
-		boxMax.x = -Float.MAX_VALUE;
-		boxMax.y = -Float.MAX_VALUE;
-		boxMax.z = -Float.MAX_VALUE;
-		vertices = ByteBuffer.allocateDirect(count * 3 * 4);
-		vertices.order(ByteOrder.nativeOrder());
+	public void setData(List<Vec3i> i, List<Vec3f> v, List<Integer> c, List<Vec3f> n, List<Vec2f> t) {
+		isValid = true;
 		
-		for(Vector3f vertex : v) {
+		indicesCount = i.size();
+		verticesCount = v.size();
+		colorsCount = c != null ? c.size() : 0;
+		normalsCount = n != null ? n.size() : 0;
+		texCoordsCount = t != null ? t.size() : 0;
+		
+		int maxIndex = 0;
+		int minIndex = Integer.MAX_VALUE;
+		
+		indices = ByteBuffer.allocateDirect(indicesCount * 3 * 4);
+		indices.order(ByteOrder.nativeOrder());
+		for(Vec3i index : i) {
+			indices.putInt(index.x);
+			indices.putInt(index.y);
+			indices.putInt(index.z);
+			
+			minIndex = Math.min(minIndex, index.x);
+			minIndex = Math.min(minIndex, index.y);
+			minIndex = Math.min(minIndex, index.z);
+			
+			maxIndex = Math.max(maxIndex, index.x);
+			maxIndex = Math.max(maxIndex, index.y);
+			maxIndex = Math.max(maxIndex, index.z);
+		}
+		indices.rewind();
+		
+		if(minIndex >= verticesCount || maxIndex >= verticesCount) {
+			isValid = false;
+			return;
+		}
+		
+		vertices = ByteBuffer.allocateDirect(verticesCount * 3 * 4);
+		vertices.order(ByteOrder.nativeOrder());
+		for(Vec3f vertex : v) {
 			vertices.putFloat(vertex.x);
 			vertices.putFloat(vertex.y);
 			vertices.putFloat(vertex.z);
 			
-			if(vertex.x < boxMin.x) boxMin.x = vertex.x;
-			if(vertex.y < boxMin.y) boxMin.y = vertex.y;
-			if(vertex.z < boxMin.z) boxMin.z = vertex.z;
-			if(vertex.x > boxMax.x) boxMax.x = vertex.x;
-			if(vertex.y > boxMax.y) boxMax.y = vertex.y;
-			if(vertex.z > boxMax.z) boxMax.z = vertex.z;
+			bBox.addPoint(vertex);
+		}
+		vertices.rewind();
+		
+		if(colorsCount > 0) {
+			if(minIndex >= colorsCount || maxIndex >= colorsCount) {
+				isValid = false;
+				return;
+			}
+			
+			colors = ByteBuffer.allocateDirect(colorsCount * 3);
+			colors.order(ByteOrder.nativeOrder());
+			for(Integer color : c) {
+				colors.put((byte) ((color >> 16) & 0xff));
+				colors.put((byte) ((color >> 8) & 0xff));
+				colors.put((byte) ((color >> 0) & 0xff));
+			}
+			colors.rewind();
 		}
 		
-		vertices.rewind();
+		if(normalsCount > 0) {
+			if(minIndex >= normalsCount || maxIndex >= normalsCount) {
+				isValid = false;
+				return;
+			}
+			
+			normals = ByteBuffer.allocateDirect(normalsCount * 3 * 4);
+			normals.order(ByteOrder.nativeOrder());
+			for(Vec3f normal : n) {
+				normals.putFloat(normal.x);
+				normals.putFloat(normal.y);
+				normals.putFloat(normal.z);
+			}
+			normals.rewind();
+		}
+		
+		if(texCoordsCount > 0) {
+			if(minIndex >= texCoordsCount || maxIndex >= texCoordsCount) {
+				isValid = false;
+				return;
+			}
+			
+			texCoords = ByteBuffer.allocateDirect(texCoordsCount * 2 * 4);
+			texCoords.order(ByteOrder.nativeOrder());
+			for(Vec2f tex : t) {
+				texCoords.putFloat(tex.x);
+				texCoords.putFloat(tex.y);
+			}
+			texCoords.rewind();
+		}
 	}
 	
-	public void setColors(List<Integer> c) {
-		colors = ByteBuffer.allocateDirect(count * 3);
-		colors.order(ByteOrder.nativeOrder());
-		
-		for(int color : c) {
-			//colors.putInt(color);
-			colors.put((byte) ((color >> 16) & 0xff));
-			colors.put((byte) ((color >> 8) & 0xff));
-			colors.put((byte) ((color >> 0) & 0xff));
-			//colors.put((byte) ((color >> 24) & 0xff));
-		}
-		
-		colors.rewind();
+	public void rewind() {
+		if(indices != null) indices.rewind();
+		if(vertices != null) vertices.rewind();
+		if(colors != null) colors.rewind();
+		if(normals != null) normals.rewind();
+		if(texCoords != null) texCoords.rewind();
 	}
 	
 	public byte[] toByteArray() {
 		ByteBuf buffer = Unpooled.buffer();
-		buffer.writeInt(count);
 		
-		buffer.writeBoolean(vertices != null);
-		if(vertices != null) {
+		rewind();
+		
+		buffer.writeInt(indicesCount);
+		if(indicesCount > 0) {
+			buffer.writeBytes(indices);
+		}
+		
+		buffer.writeInt(verticesCount);
+		if(verticesCount > 0) {
 			buffer.writeBytes(vertices);
-			vertices.rewind();
 		}
 		
-		buffer.writeBoolean(normals != null);
-		if(normals != null) {
-			buffer.writeBytes(normals);
-			normals.rewind();
-		}
-		
-		buffer.writeBoolean(texCoords != null);
-		if(texCoords != null) {
-			buffer.writeBytes(texCoords);
-			texCoords.rewind();
-		}
-		
-		buffer.writeBoolean(colors != null);
-		if(colors != null) {
+		buffer.writeInt(colorsCount);
+		if(colorsCount > 0) {
 			buffer.writeBytes(colors);
-			colors.rewind();
 		}
+		
+		buffer.writeInt(normalsCount);
+		if(normalsCount > 0) {
+			buffer.writeBytes(normals);
+		}
+		
+		buffer.writeInt(texCoordsCount);
+		if(texCoordsCount > 0) {
+			buffer.writeBytes(texCoords);
+		}
+		
+		bBox.writeTo(buffer);
+		
+		rewind();
 		
 		byte[] byteArray = new byte[buffer.readableBytes()];
 		buffer.readBytes(byteArray);
@@ -106,65 +179,45 @@ public class MaterialGroup {
 	public void fromByteArray(byte[] data) {
 		ByteBuf buffer = Unpooled.wrappedBuffer(data);
 		
-		count = buffer.readInt();
+		indicesCount = buffer.readInt();
+		if(indicesCount > 0) {
+			indices = ByteBuffer.allocateDirect(indicesCount * 3 * 4);
+			indices.order(ByteOrder.nativeOrder());
+			buffer.readBytes(indices);
+		}
 		
-		boolean verticesExist = buffer.readBoolean();
-		if(verticesExist) {
-			vertices = ByteBuffer.allocateDirect(count * 3 * 4);
+		verticesCount = buffer.readInt();
+		if(verticesCount > 0) {
+			vertices = ByteBuffer.allocateDirect(verticesCount * 3 * 4);
 			vertices.order(ByteOrder.nativeOrder());
 			buffer.readBytes(vertices);
-			vertices.rewind();
-			
-			calculateBBox();
 		}
 		
-		// TODO size
-		boolean normalsExist = buffer.readBoolean();
-		/*if(normalsExist) {
-			normals = ByteBuffer.allocateDirect(count * 3 * 4);
-			normals.order(ByteOrder.nativeOrder());
-			buffer.readBytes(normals);
-			normals.rewind();
-		}*/
-		
-		boolean texCoordsExist = buffer.readBoolean();
-		/*if(texCoordsExist) {
-			texCoords = ByteBuffer.allocateDirect(count * 3 * 4);
-			texCoords.order(ByteOrder.nativeOrder());
-			buffer.readBytes(texCoords);
-			texCoords.rewind();
-		}*/
-		
-		boolean colorsExist = buffer.readBoolean();
-		if(colorsExist) {
-			colors = ByteBuffer.allocateDirect(count * 3);
+		colorsCount = buffer.readInt();
+		if(colorsCount > 0) {
+			colors = ByteBuffer.allocateDirect(colorsCount * 3);
 			colors.order(ByteOrder.nativeOrder());
 			buffer.readBytes(colors);
-			colors.rewind();
-		}
-	}
-	
-	public void calculateBBox() {
-		boxMin.x = Float.MAX_VALUE;
-		boxMin.y = Float.MAX_VALUE;
-		boxMin.z = Float.MAX_VALUE;
-		boxMax.x = -Float.MAX_VALUE;
-		boxMax.y = -Float.MAX_VALUE;
-		boxMax.z = -Float.MAX_VALUE;
-		
-		for(int i = 0; i < count; i++) {
-			float x = vertices.getFloat();
-			float y = vertices.getFloat();
-			float z = vertices.getFloat();
-			
-			if(x < boxMin.x) boxMin.x = x;
-			if(y < boxMin.y) boxMin.y = y;
-			if(z < boxMin.z) boxMin.z = z;
-			if(x > boxMax.x) boxMax.x = x;
-			if(y > boxMax.y) boxMax.y = y;
-			if(z > boxMax.z) boxMax.z = z;
 		}
 		
-		vertices.rewind();
+		normalsCount = buffer.readInt();
+		if(normalsCount > 0) {
+			normals = ByteBuffer.allocateDirect(normalsCount * 3 * 4);
+			normals.order(ByteOrder.nativeOrder());
+			buffer.readBytes(normals);
+		}
+		
+		texCoordsCount = buffer.readInt();
+		if(texCoordsCount > 0) {
+			texCoords = ByteBuffer.allocateDirect(texCoordsCount * 2 * 4);
+			texCoords.order(ByteOrder.nativeOrder());
+			buffer.readBytes(texCoords);
+		}
+		
+		bBox.readFrom(buffer);
+		
+		rewind();
+		
+		isValid = indicesCount > 0 && verticesCount > 0;
 	}
 }

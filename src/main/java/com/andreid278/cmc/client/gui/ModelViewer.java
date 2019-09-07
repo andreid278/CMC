@@ -1,5 +1,7 @@
 package com.andreid278.cmc.client.gui;
 
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -7,6 +9,7 @@ import com.andreid278.cmc.client.model.CMCModel;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderManager;
 
@@ -21,9 +24,9 @@ public class ModelViewer extends Gui {
 	public boolean isDragged = false;
 	public float mouseStartX;
 	public float mouseStartY;
-	public float angleX = 0;
-	public float angleY = 0;
-	Quaternion rotation = new Quaternion();
+	
+	Quaternion cameraRotation = new Quaternion();
+	float cameraScale = 1.0f;
 	
 	public int curMouseX;
 	public int curMouseY;
@@ -40,10 +43,20 @@ public class ModelViewer extends Gui {
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
+		boolean scissor = GL11.glGetBoolean(GL11.GL_SCISSOR_TEST);
+		GL11.glEnable(GL11.GL_SCISSOR_TEST);
+		
+		ScaledResolution scaledresolution = new ScaledResolution(Minecraft.getMinecraft());
+		int i = scaledresolution.getScaledWidth();
+		int j = scaledresolution.getScaledHeight();
+		
+		GL11.glScissor(x * Minecraft.getMinecraft().displayWidth / i,
+				(j - y - h) * Minecraft.getMinecraft().displayHeight / j,
+				w * Minecraft.getMinecraft().displayWidth / i,
+				h * Minecraft.getMinecraft().displayHeight / j);
+		
 		curMouseX = mouseX;
 		curMouseY = mouseY;
-		
-		//GlStateManager.viewport(x, y, w, h);
 		
 		GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 		GlStateManager.disableTexture2D();
@@ -52,18 +65,22 @@ public class ModelViewer extends Gui {
 		
 		if(model != null) {
 			GlStateManager.pushMatrix();
-			float scale = 30;
-			GlStateManager.translate(x + w / 2, y + h / 2, model.getSize() * scale);
+			float scale = 15 * cameraScale * model.bBox.getSize();
+			GlStateManager.translate(x + w / 2, y + h / 2, scale);
 			GlStateManager.scale(scale, scale, scale);
-			GlStateManager.rotate(rotation);
-			GlStateManager.translate(-model.getSizeX() * 0.5f, -model.getSizeY() * 0.5f, -model.getSizeZ() * 0.5f);
+			GlStateManager.rotate(cameraRotation);
+			GlStateManager.translate(-model.bBox.getSizeX() * 0.5f, -model.bBox.getSizeY() * 0.5f, -model.bBox.getSizeZ() * 0.5f);
 			model.draw();
 			GlStateManager.popMatrix();
 		}
 		
 		GlStateManager.enableTexture2D();
 		
-		GlStateManager.viewport(0, 0, Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
+		GL11.glScissor(0, 0, Minecraft.getMinecraft().displayWidth, Minecraft.getMinecraft().displayHeight);
+		
+		if(!scissor) {
+			GL11.glDisable(GL11.GL_SCISSOR_TEST);
+		}
 	}
 	
 	public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
@@ -80,9 +97,9 @@ public class ModelViewer extends Gui {
 			float angleY = (mouseY - mouseStartY) / h * 2 * (float) Math.PI;
 			Quaternion rot = new Quaternion();
 			rot.setFromAxisAngle(new Vector4f(0, 1, 0, angleX));
-			Quaternion.mul(rot, rotation, rotation);
+			Quaternion.mul(rot, cameraRotation, cameraRotation);
 			rot.setFromAxisAngle(new Vector4f(1, 0, 0, -angleY));
-			Quaternion.mul(rot, rotation, rotation);
+			Quaternion.mul(rot, cameraRotation, cameraRotation);
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
 			return true;
@@ -98,6 +115,20 @@ public class ModelViewer extends Gui {
 		if(!isMouseInside(curMouseX, curMouseY)) {
 			return;
 		}
+		
+		int wheel = Mouse.getEventDWheel();
+		if (wheel > 0) {
+			wheel = 1;
+		}
+		else if (wheel < 0) {
+			wheel = -1;
+		}
+		float min = 0.1f;
+		float max = 10.0f;
+		float step = 0.05f;
+		cameraScale += wheel * step;
+		if(cameraScale < min) cameraScale = min;
+		if(cameraScale > max) cameraScale = max;
 	}
 	
 	public boolean isMouseInside(int mouseX, int mouseY) {
@@ -105,6 +136,7 @@ public class ModelViewer extends Gui {
 	}
 	
 	public void resetTransformation() {
-		rotation.setIdentity();
+		cameraRotation.setIdentity();
+		cameraScale = 1.0f;
 	}
 }

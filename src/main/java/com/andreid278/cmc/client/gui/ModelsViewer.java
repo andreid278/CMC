@@ -89,7 +89,9 @@ public class ModelsViewer extends Gui {
 		curPage = -1;
 		curNumberOfInitedModels = 0;
 		isModelsCountInited = false;
-		
+	}
+	
+	public void afterCreation() {
 		DataLoadingHelper.requestModelsCount();
 	}
 	
@@ -228,6 +230,8 @@ public class ModelsViewer extends Gui {
 		if(curPage == page) {
 			return;
 		}
+		
+		System.out.println("setPage");
 		
 		curPage = page;
 		isCurPageInited = false;
