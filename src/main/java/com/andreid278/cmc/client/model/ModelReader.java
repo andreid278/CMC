@@ -39,14 +39,14 @@ public class ModelReader {
 		MaterialGroup material = new MaterialGroup();
 		
 		List<Vec3f> vertices = Lists.newArrayList();
-		vertices.add(MathUtils.instance.new Vec3f(0, 0, 0));
-		vertices.add(MathUtils.instance.new Vec3f(1, 0, 0));
-		vertices.add(MathUtils.instance.new Vec3f(0, 1, 0));
-		vertices.add(MathUtils.instance.new Vec3f(1, 1, 0));
-		vertices.add(MathUtils.instance.new Vec3f(0, 0, 1));
-		vertices.add(MathUtils.instance.new Vec3f(1, 0, 1));
-		vertices.add(MathUtils.instance.new Vec3f(0, 1, 1));
-		vertices.add(MathUtils.instance.new Vec3f(1, 1, 1));
+		vertices.add(MathUtils.instance.new Vec3f(-0.5f, -0.5f, -0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(0.5f, -0.5f, -0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(-0.5f, 0.5f, -0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(0.5f, 0.5f, -0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(-0.5f, -0.5f, 0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(0.5f, -0.5f, 0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(-0.5f, 0.5f, 0.5f));
+		vertices.add(MathUtils.instance.new Vec3f(0.5f, 0.5f, 0.5f));
 		
 		List<Integer> colors = Lists.newArrayList();
 		colors.add(randColor());

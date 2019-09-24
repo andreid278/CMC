@@ -26,15 +26,22 @@ public class ModelsSelectionGui extends GuiScreen {
 		
 		modelsViewer = new ModelsViewer(this, 10, 10, 200, 200);
 		modelsViewer.afterCreation();
-		choosenModelViewer = new ModelViewer(250, 10, 100, 100);
+		choosenModelViewer = new ModelViewer(220, 10, 200, 200);
+		choosenModelViewer.showPlayer(true);
+		choosenModelViewer.canAttachTransformControl = true;
 		choosenModelUUID = null;
 		//if(!ModelStorage.instance.isEmpty()) {
 		//	modelsViewer.setModel(ModelStorage.instance.getAnyModel());
 		//}
 		
 		this.buttonList.clear();
-		this.buttonList.add(new GuiButton(0, 300, 100, "Test save"));
-		this.buttonList.add(new GuiButton(1, 300, 200, "Assign to the player"));
+		this.buttonList.add(new GuiButton(0, 10, 210, "Test save"));
+		this.buttonList.add(new GuiButton(1, 220, 210, "Assign to the player"));
+	}
+	
+	@Override
+	public boolean doesGuiPauseGame() {
+		return false;
 	}
 	
 	@Override

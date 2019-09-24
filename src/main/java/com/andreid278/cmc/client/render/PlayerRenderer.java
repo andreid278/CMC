@@ -28,6 +28,7 @@ public class PlayerRenderer {
 		for(CMCModelOnPlayer modelOnPlayer : modelsList) {
 			if(ModelStorage.instance.hasModel(modelOnPlayer.uuid)) {
 				GlStateManager.pushMatrix();
+				GlStateManager.translate(0, event.getEntityPlayer().height * 0.5, 0);
 				modelOnPlayer.locationFloatBuffer.rewind();
 				GlStateManager.multMatrix(modelOnPlayer.locationFloatBuffer);
 				ModelStorage.instance.getModel(modelOnPlayer.uuid).draw();

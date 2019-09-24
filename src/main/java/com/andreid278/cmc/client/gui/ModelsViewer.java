@@ -158,19 +158,17 @@ public class ModelsViewer extends Gui {
 		
 		for(int i = 0; i < rowCount * colCount; i++) {
 			if(models[i].isMouseInside(mouseX, mouseY)) {
-				if(models[i].model != null) {
-					Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
-					Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
-					int j = 0;
-					while(it.hasNext()) {
-						if(j == i) {
-							parent.viewModel(it.next().getKey());
-							break;
-						}
-						else {
-							j++;
-							it.next();
-						}
+				Set<Entry<UUID, ModelInfo>> entrySet = modelsInfo.entrySet();
+				Iterator<Entry<UUID, ModelInfo>> it = entrySet.iterator();
+				int j = 0;
+				while(it.hasNext()) {
+					if(j == i) {
+						parent.viewModel(it.next().getKey());
+						break;
+					}
+					else {
+						j++;
+						it.next();
 					}
 				}
 				break;
