@@ -6,11 +6,10 @@ import java.util.List;
 
 import org.apache.http.util.ByteArrayBuffer;
 
-import com.andreid278.cmc.utils.MathUtils;
-import com.andreid278.cmc.utils.MathUtils.Box3f;
-import com.andreid278.cmc.utils.MathUtils.Vec2f;
-import com.andreid278.cmc.utils.MathUtils.Vec3f;
-import com.andreid278.cmc.utils.MathUtils.Vec3i;
+import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.Vec2f;
+import com.andreid278.cmc.utils.Vec3f;
+import com.andreid278.cmc.utils.Vec3i;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -27,7 +26,7 @@ public class MaterialGroup {
 	public ByteBuffer texCoords = null;
 	public int texCoordsCount = 0;
 	
-	public Box3f bBox = MathUtils.instance.new Box3f();
+	public Box3f bBox = new Box3f();
 	
 	public boolean isValid = false;
 

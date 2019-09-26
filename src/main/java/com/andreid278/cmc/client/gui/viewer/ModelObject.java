@@ -1,7 +1,9 @@
 package com.andreid278.cmc.client.gui.viewer;
 
 import com.andreid278.cmc.client.model.CMCModel;
-import com.andreid278.cmc.utils.MathUtils.Box3f;
+import com.andreid278.cmc.utils.Box3f;
+
+import net.minecraft.client.renderer.GlStateManager;
 
 public class ModelObject extends MovableObject {
 	
@@ -15,7 +17,11 @@ public class ModelObject extends MovableObject {
 
 	@Override
 	public void draw() {
+		GlStateManager.pushMatrix();
+		transformationFloatBuffer.rewind();
+		GlStateManager.multMatrix(transformationFloatBuffer);
 		model.draw();
+		GlStateManager.popMatrix();
 	}
 
 	@Override

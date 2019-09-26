@@ -240,7 +240,7 @@ public class ModelsViewer extends Gui {
 		
 		for(int j = 0; j < rowCount * colCount; j++) {
 			models[j].setModel(null);
-			models[j].resetTransformation();
+			models[j].resetCamera();
 		}
 		
 		pagesIndices.clear();

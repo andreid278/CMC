@@ -23,8 +23,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL32;
 
 import com.andreid278.cmc.common.CMCData;
-import com.andreid278.cmc.utils.MathUtils;
-import com.andreid278.cmc.utils.MathUtils.Box3f;
+import com.andreid278.cmc.utils.Box3f;
 import com.google.common.collect.Lists;
 
 import net.minecraft.client.renderer.GlStateManager;
@@ -37,7 +36,7 @@ import net.minecraft.client.renderer.vertex.VertexFormatElement;
 
 public class CMCModel {
 	private List<MaterialGroup> materials = Lists.newArrayList();
-	public Box3f bBox = MathUtils.instance.new Box3f();
+	public Box3f bBox = new Box3f();
 
 	public CMCModel() {
 		

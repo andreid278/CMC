@@ -7,9 +7,8 @@ import java.util.UUID;
 import javax.vecmath.Vector3f;
 
 import com.andreid278.cmc.CMC;
-import com.andreid278.cmc.utils.MathUtils;
-import com.andreid278.cmc.utils.MathUtils.Vec3f;
-import com.andreid278.cmc.utils.MathUtils.Vec3i;
+import com.andreid278.cmc.utils.Vec3f;
+import com.andreid278.cmc.utils.Vec3i;
 import com.google.common.collect.Lists;
 
 import net.minecraft.util.ResourceLocation;
@@ -39,14 +38,14 @@ public class ModelReader {
 		MaterialGroup material = new MaterialGroup();
 		
 		List<Vec3f> vertices = Lists.newArrayList();
-		vertices.add(MathUtils.instance.new Vec3f(-0.5f, -0.5f, -0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(0.5f, -0.5f, -0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(-0.5f, 0.5f, -0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(0.5f, 0.5f, -0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(-0.5f, -0.5f, 0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(0.5f, -0.5f, 0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(-0.5f, 0.5f, 0.5f));
-		vertices.add(MathUtils.instance.new Vec3f(0.5f, 0.5f, 0.5f));
+		vertices.add(new Vec3f(-0.5f, -0.5f, -0.5f));
+		vertices.add(new Vec3f(0.5f, -0.5f, -0.5f));
+		vertices.add(new Vec3f(-0.5f, 0.5f, -0.5f));
+		vertices.add(new Vec3f(0.5f, 0.5f, -0.5f));
+		vertices.add(new Vec3f(-0.5f, -0.5f, 0.5f));
+		vertices.add(new Vec3f(0.5f, -0.5f, 0.5f));
+		vertices.add(new Vec3f(-0.5f, 0.5f, 0.5f));
+		vertices.add(new Vec3f(0.5f, 0.5f, 0.5f));
 		
 		List<Integer> colors = Lists.newArrayList();
 		colors.add(randColor());
@@ -59,18 +58,18 @@ public class ModelReader {
 		colors.add(randColor());
 		
 		List<Vec3i> indices = Lists.newArrayList();
-		indices.add(MathUtils.instance.new Vec3i(0, 1, 3));
-		indices.add(MathUtils.instance.new Vec3i(0, 3, 2));
-		indices.add(MathUtils.instance.new Vec3i(4, 6, 7));
-		indices.add(MathUtils.instance.new Vec3i(4, 7, 5));
-		indices.add(MathUtils.instance.new Vec3i(0, 2, 6));
-		indices.add(MathUtils.instance.new Vec3i(0, 6, 4));
-		indices.add(MathUtils.instance.new Vec3i(1, 5, 7));
-		indices.add(MathUtils.instance.new Vec3i(1, 7, 3));
-		indices.add(MathUtils.instance.new Vec3i(0, 4, 5));
-		indices.add(MathUtils.instance.new Vec3i(0, 5, 1));
-		indices.add(MathUtils.instance.new Vec3i(2, 3, 7));
-		indices.add(MathUtils.instance.new Vec3i(2, 7, 6));
+		indices.add(new Vec3i(0, 1, 3));
+		indices.add(new Vec3i(0, 3, 2));
+		indices.add(new Vec3i(4, 6, 7));
+		indices.add(new Vec3i(4, 7, 5));
+		indices.add(new Vec3i(0, 2, 6));
+		indices.add(new Vec3i(0, 6, 4));
+		indices.add(new Vec3i(1, 5, 7));
+		indices.add(new Vec3i(1, 7, 3));
+		indices.add(new Vec3i(0, 4, 5));
+		indices.add(new Vec3i(0, 5, 1));
+		indices.add(new Vec3i(2, 3, 7));
+		indices.add(new Vec3i(2, 7, 6));
 		
 		material.setData(indices, vertices, colors, null, null);
 		
