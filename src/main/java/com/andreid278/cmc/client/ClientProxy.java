@@ -179,7 +179,7 @@ public class ClientProxy extends CommonProxy {
 			return null;
 		}
 		if(CMCData.instance.playersModels.containsKey(message.uuid)) {
-			CMCData.instance.playersModels.remove(message.uuid);
+			CMCData.instance.playersModels.put(message.uuid, null);
 		}
 		return null;
 	}

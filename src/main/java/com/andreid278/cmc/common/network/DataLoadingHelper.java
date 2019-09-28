@@ -9,6 +9,7 @@ import java.util.UUID;
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModelOnPlayer;
+import com.andreid278.cmc.client.model.CMCModelOnPlayer.BodyPart;
 import com.andreid278.cmc.common.CMCData;
 
 import net.minecraft.client.Minecraft;
@@ -75,28 +76,31 @@ public class DataLoadingHelper {
 		CMC.network.sendToServer(message);
 	}
 	
-	public static void chooseModel(UUID uuid, Matrix4f location) {
+	public static void chooseModel(UUID uuid, Matrix4f location, BodyPart bodyPart) {
 		UUID playerUUID = Minecraft.getMinecraft().player.getUniqueID();
-		List<CMCModelOnPlayer> list = null;
-		if(CMCData.instance.playersModels.containsKey(playerUUID)) {
-			list = CMCData.instance.playersModels.get(playerUUID);
+		if(!CMCData.instance.playersModels.containsKey(playerUUID)) {
+			System.out.println("chooseModel error");
+			return;
 		}
-		else {
+		
+		List<CMCModelOnPlayer> list = CMCData.instance.playersModels.get(playerUUID);
+		if(list == null) {
 			list = new ArrayList<>();
 			CMCData.instance.playersModels.put(playerUUID, list);
 		}
+		
 		for(Iterator<CMCModelOnPlayer> it = list.iterator(); it.hasNext(); ) {
 			if(it.next().uuid.equals(uuid)) {
 				it.remove();
 				break;
 			}
 		}
-		list.add(new CMCModelOnPlayer(uuid, location));
+		list.add(new CMCModelOnPlayer(uuid, location, bodyPart));
 		
 		if(Minecraft.getMinecraft().isSingleplayer()) {
 			return;
 		}
-		MessageChooseModel message = new MessageChooseModel(uuid, location);
+		MessageChooseModel message = new MessageChooseModel(uuid, location, bodyPart);
 		CMC.network.sendToServer(message);
 	}
 }

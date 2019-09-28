@@ -17,16 +17,22 @@ public class ModelObject extends MovableObject {
 
 	@Override
 	public void draw() {
-		GlStateManager.pushMatrix();
-		transformationFloatBuffer.rewind();
-		GlStateManager.multMatrix(transformationFloatBuffer);
-		model.draw();
-		GlStateManager.popMatrix();
+		if(isModelNotNull()) {
+			GlStateManager.pushMatrix();
+			transformationFloatBuffer.rewind();
+			GlStateManager.multMatrix(transformationFloatBuffer);
+			model.draw();
+			GlStateManager.popMatrix();
+		}
 	}
 
 	@Override
 	public Box3f BoundingBox() {
 		return model.bBox;
+	}
+	
+	public boolean isModelNotNull() {
+		return model != null;
 	}
 
 }

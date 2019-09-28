@@ -6,12 +6,14 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.model.CMCModelOnPlayer;
+import com.andreid278.cmc.client.model.CMCModelOnPlayer.BodyPart;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.ModelsInfo;
 import com.google.common.base.Charsets;
@@ -26,14 +28,16 @@ public class MessageChooseModel implements IMessage {
 	
 	public UUID uuid;
 	Matrix4f location;
+	BodyPart bodyPart;
 	
 	public MessageChooseModel() {
 		
 	}
 	
-	public MessageChooseModel(UUID uuid, Matrix4f location) {
+	public MessageChooseModel(UUID uuid, Matrix4f location, BodyPart bodyPart) {
 		this.uuid = uuid;
 		this.location = location;
+		this.bodyPart = bodyPart;
 	}
 
 	@Override
@@ -59,6 +63,8 @@ public class MessageChooseModel implements IMessage {
 		location.m31 = buf.readFloat();
 		location.m32 = buf.readFloat();
 		location.m33 = buf.readFloat();
+		
+		bodyPart = BodyPart.values()[buf.readInt()];
 	}
 
 	@Override
@@ -82,13 +88,34 @@ public class MessageChooseModel implements IMessage {
 		buf.writeFloat(location.m31);
 		buf.writeFloat(location.m32);
 		buf.writeFloat(location.m33);
+		
+		buf.writeInt(bodyPart.ordinal());
 	}
 	
 	public static class Handler implements IMessageHandler<MessageChooseModel, IMessage> {
 
 		@Override
 		public IMessage onMessage(MessageChooseModel message, MessageContext ctx) {
-			MessageBroadcastResetPlayerModels response = new MessageBroadcastResetPlayerModels(message.uuid);
+			UUID playerUUID = ctx.getServerHandler().player.getUniqueID();
+			List<CMCModelOnPlayer> models;
+			if(CMCData.instance.playersModels.containsKey(playerUUID)) {
+				models = CMCData.instance.playersModels.get(message.uuid);
+			}
+			else {
+				models = new ArrayList<CMCModelOnPlayer>();
+			}
+			
+			Iterator<CMCModelOnPlayer> it = models.iterator();
+			while(it.hasNext()) {
+				CMCModelOnPlayer model = it.next();
+				if(model.uuid.equals(message.uuid)) {
+					it.remove();
+				}
+			}
+			
+			models.add(new CMCModelOnPlayer(message.uuid, message.location, message.bodyPart));
+			
+			MessageBroadcastResetPlayerModels response = new MessageBroadcastResetPlayerModels(playerUUID);
 			CMC.network.sendToAll(response);
 			return null;
 		}

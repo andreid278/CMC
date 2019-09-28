@@ -45,6 +45,13 @@ public class ViewerCamera {
 	public void resetTransformation() {
 		cameraTranslation.set(0, 0, 0);
 		cameraRotation.setIdentity();
+		//cameraRotation.setFromAxisAngle(new Vector4f(0, 0, 1, (float)Math.PI));
+		Quaternion rot = new Quaternion();
+		//rot.setFromAxisAngle(new Vector4f(1, 0, 0, (float) Math.PI));
+		rot.setFromAxisAngle(new Vector4f(0, 0, 1, (float) Math.PI));
+		Quaternion.mul(cameraRotation, rot, cameraRotation);
+		//rot.setFromAxisAngle(new Vector4f(0, 1, 0, (float) Math.PI));
+		//Quaternion.mul(cameraRotation, rot, cameraRotation);
 		cameraScale = 1.0f;
 		
 		isUpdated = true;
@@ -55,7 +62,7 @@ public class ViewerCamera {
 		
 		if(box.isValid) {
 			float scale = scaleConst * box.getSize();
-			cameraTranslation.set(-box.getCenterX() * scale, -box.getCenterY() * scale, -box.getCenterZ() * scale);
+			cameraTranslation.set(-box.getCenterX() * scale, box.getCenterY() * scale, -box.getCenterZ() * scale);
 		}
 	}
 	
@@ -112,7 +119,7 @@ public class ViewerCamera {
 		
 		// Scale
 		float scale = 1.0f / (scaleConst * cameraScale * box.getSize());
-		Vec3f scaleVector = new Vec3f(scale, scale, scale);
+		Vec3f scaleVector = new Vec3f(-scale, scale, scale);
 		Matrix4f.scale(scaleVector, cameraMatrix, cameraMatrix);
 		
 		// Rotation

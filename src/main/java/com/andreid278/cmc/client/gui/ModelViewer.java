@@ -32,6 +32,8 @@ public class ModelViewer extends Gui {
 	public int h;
 	
 	public List<MovableObject> objects = new ArrayList<>();
+	ModelObject modelObject = null;
+	PlayerObject playerObject = null;
 	Box3f globalBBox = new Box3f();
 	boolean showPlayer = false;
 	
@@ -54,26 +56,19 @@ public class ModelViewer extends Gui {
 		this.h = h;
 		
 		camera = new ViewerCamera(x, y, w, h);
+		camera.resetTransformation();
+		
+		modelObject = new ModelObject(null);
+		playerObject = new PlayerObject();
 	}
 	
 	public void setModel(CMCModel model) {
-		globalBBox.reset();
+		modelObject = new ModelObject(model);
+		if(canAttachTransformControl) {
+			transformControl.attachObject(modelObject);
+		}
 		
-		Iterator<MovableObject> it = objects.iterator();
-		while(it.hasNext()) {
-			if(it.next() instanceof ModelObject) {
-				it.remove();
-				break;
-			}
-		}
-		if(model != null) {
-			ModelObject modelObject = new ModelObject(model);
-			objects.add(modelObject);
-			
-			if(canAttachTransformControl) {
-				transformControl.attachObject(modelObject);
-			}
-		}
+		globalBBox.reset();
 		
 		calculateBBox();
 		camera.resetAndFitCamera(globalBBox);
@@ -112,7 +107,13 @@ public class ModelViewer extends Gui {
 			GlStateManager.translate(x + w / 2, y + h / 2, scale);
 			GlStateManager.translate(camera.cameraTranslation.x, camera.cameraTranslation.y, camera.cameraTranslation.z);
 			GlStateManager.rotate(camera.cameraRotation);
-			GlStateManager.scale(scale, scale, scale);
+			GlStateManager.scale(-scale, scale, scale);
+			
+			modelObject.draw();
+			
+			if(showPlayer) {
+				playerObject.draw();
+			}
 			
 			Iterator<MovableObject> it = objects.iterator();
 			while(it.hasNext()) {
@@ -214,6 +215,14 @@ public class ModelViewer extends Gui {
 			return;
 		}
 		
+		if(modelObject.isModelNotNull() && modelObject.GlobalBoundingBox().isValid) {
+			globalBBox.union(modelObject.GlobalBoundingBox());
+		}
+		
+		if(showPlayer && playerObject.GlobalBoundingBox().isValid) {
+			globalBBox.union(playerObject.GlobalBoundingBox());
+		}
+		
 		Iterator<MovableObject> it = objects.iterator();
 		while(it.hasNext()) {
 			Box3f childBox = it.next().GlobalBoundingBox();
@@ -228,20 +237,10 @@ public class ModelViewer extends Gui {
 			return;
 		}
 		
-		if(toShow) {
-			objects.add(new PlayerObject());
-		}
-		else {
-			Iterator<MovableObject> it = objects.iterator();
-			while(it.hasNext()) {
-				if(it.next() instanceof PlayerObject) {
-					it.remove();
-					break;
-				}
-			}
-		}
+		showPlayer = toShow;
 		
 		globalBBox.reset();
+		calculateBBox();
 		camera.resetAndFitCamera(globalBBox);
 	}
 	

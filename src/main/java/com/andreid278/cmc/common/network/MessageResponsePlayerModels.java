@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.model.CMCModelOnPlayer;
+import com.andreid278.cmc.client.model.CMCModelOnPlayer.BodyPart;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.ModelsInfo;
 import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
@@ -52,11 +53,7 @@ public class MessageResponsePlayerModels implements IMessage {
 		models = new ArrayList<CMCModelOnPlayer>();
 		
 		for(int i = 0; i < s; i++) {
-			long leastBitsM = buf.readLong();
-			long mostBitsM = buf.readLong();
-			UUID uuidM = new UUID(mostBits, leastBits);
-			
-			models.add(new CMCModelOnPlayer(uuidM));
+			models.add(new CMCModelOnPlayer(null).readFromBuf(buf));
 		}
 	}
 
@@ -71,9 +68,7 @@ public class MessageResponsePlayerModels implements IMessage {
 		
 		while(it.hasNext()) {
 			CMCModelOnPlayer entry = it.next();
-			
-			buf.writeLong(entry.uuid.getLeastSignificantBits());
-			buf.writeLong(entry.uuid.getMostSignificantBits());
+			entry.writeToBuf(buf);
 		}
 	}
 	

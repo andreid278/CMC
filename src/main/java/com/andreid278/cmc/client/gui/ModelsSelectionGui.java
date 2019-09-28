@@ -7,8 +7,10 @@ import java.util.UUID;
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.client.model.ModelReader;
+import com.andreid278.cmc.client.model.CMCModelOnPlayer.BodyPart;
 import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
 import com.andreid278.cmc.common.network.DataLoadingHelper;
+import com.andreid278.cmc.utils.Vec3f;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
@@ -17,8 +19,9 @@ import net.minecraft.client.renderer.Matrix4f;
 
 public class ModelsSelectionGui extends GuiScreen {
 	public ModelsViewer modelsViewer;
-	public ModelViewer choosenModelViewer;
-	public UUID choosenModelUUID;
+	public ModelViewer selectedModelViewer;
+	public UUID selectedModelUUID;
+	public BodyPart bodyPart = BodyPart.Torso;
 	
 	@Override
 	public void initGui() {
@@ -26,10 +29,10 @@ public class ModelsSelectionGui extends GuiScreen {
 		
 		modelsViewer = new ModelsViewer(this, 10, 10, 200, 200);
 		modelsViewer.afterCreation();
-		choosenModelViewer = new ModelViewer(220, 10, 200, 200);
-		choosenModelViewer.showPlayer(true);
-		choosenModelViewer.canAttachTransformControl = true;
-		choosenModelUUID = null;
+		selectedModelViewer = new ModelViewer(220, 10, 200, 200);
+		selectedModelViewer.showPlayer(true);
+		selectedModelViewer.canAttachTransformControl = true;
+		selectedModelUUID = null;
 		//if(!ModelStorage.instance.isEmpty()) {
 		//	modelsViewer.setModel(ModelStorage.instance.getAnyModel());
 		//}
@@ -37,6 +40,12 @@ public class ModelsSelectionGui extends GuiScreen {
 		this.buttonList.clear();
 		this.buttonList.add(new GuiButton(0, 10, 210, "Test save"));
 		this.buttonList.add(new GuiButton(1, 220, 210, "Assign to the player"));
+		this.buttonList.add(new GuiButton(2, 440, 10, "Head"));
+		this.buttonList.add(new GuiButton(3, 440, 30, "Torso"));
+		this.buttonList.add(new GuiButton(4, 440, 50, "LArm"));
+		this.buttonList.add(new GuiButton(5, 440, 70, "RArm"));
+		this.buttonList.add(new GuiButton(6, 440, 90, "LLeg"));
+		this.buttonList.add(new GuiButton(7, 440, 110, "RLeg"));
 	}
 	
 	@Override
@@ -49,35 +58,35 @@ public class ModelsSelectionGui extends GuiScreen {
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		
 		modelsViewer.draw(mc, mouseX, mouseY);
-		choosenModelViewer.draw(mc, mouseX, mouseY);
+		selectedModelViewer.draw(mc, mouseX, mouseY);
 	}
 	
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		modelsViewer.mouseClicked(mouseX, mouseY, mouseButton);
-		choosenModelViewer.mouseClicked(mouseX, mouseY, mouseButton);
+		selectedModelViewer.mouseClicked(mouseX, mouseY, mouseButton);
 	}
 	
 	@Override
 	protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
 		super.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 		modelsViewer.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
-		choosenModelViewer.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
+		selectedModelViewer.mouseClickMove(mouseX, mouseY, clickedMouseButton, timeSinceLastClick);
 	}
 	
 	@Override
 	protected void mouseReleased(int mouseX, int mouseY, int state) {
 		super.mouseReleased(mouseX, mouseY, state);
 		modelsViewer.mouseReleased(mouseX, mouseY, state);
-		choosenModelViewer.mouseReleased(mouseX, mouseY, state);
+		selectedModelViewer.mouseReleased(mouseX, mouseY, state);
 	}
 	
 	@Override
 	public void handleMouseInput() throws IOException {
 		super.handleMouseInput();
 		modelsViewer.handleMouseInput();
-		choosenModelViewer.handleMouseInput();
+		selectedModelViewer.handleMouseInput();
 	}
 	
 	@Override
@@ -92,11 +101,33 @@ public class ModelsSelectionGui extends GuiScreen {
 			DataLoadingHelper.sendDataToServer(uuid, Minecraft.getMinecraft().player.getName(), "Name", true);
 			break;
 		case 1:
-			if(choosenModelUUID != null) {
-				Matrix4f location = new Matrix4f();
-				location.setIdentity();
-				DataLoadingHelper.chooseModel(choosenModelUUID, location);
+			if(selectedModelUUID != null && selectedModelViewer.modelObject.isModelNotNull()) {
+				Matrix4f location = selectedModelViewer.modelObject.transformation;
+				Matrix4f rot = new Matrix4f();
+				rot.setIdentity();
+				//Matrix4f.rotate((float)Math.PI, new Vec3f(1, 0, 0), rot, rot);
+				//Matrix4f.rotate((float)Math.PI, new Vec3f(0, 1, 0), rot, rot);
+				Matrix4f.mul(rot, location, rot);
+				DataLoadingHelper.chooseModel(selectedModelUUID, rot, bodyPart);
 			}
+			break;
+		case 2:
+			bodyPart = BodyPart.Head;
+			break;
+		case 3:
+			bodyPart = BodyPart.Torso;
+			break;
+		case 4:
+			bodyPart = BodyPart.LeftArm;
+			break;
+		case 5:
+			bodyPart = BodyPart.RightArm;
+			break;
+		case 6:
+			bodyPart = BodyPart.LeftLeg;
+			break;
+		case 7:
+			bodyPart = BodyPart.RightLeg;
 			break;
 		}
 	}
@@ -115,12 +146,12 @@ public class ModelsSelectionGui extends GuiScreen {
 			return;
 		}
 		if(ModelStorage.instance.hasModel(uuid)) {
-			choosenModelViewer.setModel(ModelStorage.instance.getModel(uuid));
-			choosenModelUUID = uuid;
+			selectedModelViewer.setModel(ModelStorage.instance.getModel(uuid));
+			selectedModelUUID = uuid;
 		}
 		else {
-			choosenModelViewer.setModel(null);
-			choosenModelUUID = null;
+			selectedModelViewer.setModel(null);
+			selectedModelUUID = null;
 		}
 	}
 }
