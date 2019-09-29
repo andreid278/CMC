@@ -32,6 +32,9 @@ public class TransformControl {
 	public Vec3f startPoint = new Vec3f(0, 0, 0);
 	public Plane draggingPlane = new Plane();
 	
+	float prevScale = 1.0f;
+	Vec3f startCenter = new Vec3f();
+	
 	public TransformControl() {
 		attachedObject = null;
 		mode = 0;
@@ -51,6 +54,7 @@ public class TransformControl {
 	public void attachObject(MovableObject object) {
 		attachedObject = object;
 		calculateCenterAxis();
+		startCenter.copy(center);
 	}
 	
 	public void draw() {
@@ -88,6 +92,16 @@ public class TransformControl {
 				draggingPlane.setFromPointNormal(center, axis[selectedAxis]);
 			}
 		}
+		else if(mode == 2) {
+			selectedAxis = checkScale(ray);
+			
+			if(selectedAxis != -1) {
+				Vec3f v = new Vec3f();
+				Vec3f.cross(axis[selectedAxis], ray.direction, v);
+				v.normalise();
+				draggingPlane.setFromPointVectorVector(startPoint, axis[selectedAxis], v);
+			}
+		}
 		
 		isDragged = selectedAxis != -1;
 		
@@ -101,6 +115,9 @@ public class TransformControl {
 			}
 			else if(mode == 1) {
 				processRotation(ray);
+			}
+			else if(mode == 2) {
+				processScale(ray);
 			}
 			
 			return true;
@@ -144,7 +161,18 @@ public class TransformControl {
 	}
 	
 	private void drawScaling() {
+		GlStateManager.disableDepth();
 		
+		Vec3i color;
+		
+		color = selectedAxis == 0 ? selectionColor : colorAxisX;
+		GuiUtils.drawLine(center.x - axis[0].x * tolerance, center.y - axis[0].y * tolerance, center.z - axis[0].z * tolerance, center.x + axis[0].x * tolerance, center.y + axis[0].y * tolerance, center.z + axis[0].z * tolerance, color.x, color.y, color.z);
+		color = selectedAxis == 1 ? selectionColor : colorAxisY;
+		GuiUtils.drawLine(center.x - axis[1].x * tolerance, center.y - axis[1].y * tolerance, center.z - axis[1].z * tolerance, center.x + axis[1].x * tolerance, center.y + axis[1].y * tolerance, center.z + axis[1].z * tolerance, color.x, color.y, color.z);
+		color = selectedAxis == 2 ? selectionColor : colorAxisZ;
+		GuiUtils.drawLine(center.x - axis[2].x * tolerance, center.y - axis[2].y * tolerance, center.z - axis[2].z * tolerance, center.x + axis[2].x * tolerance, center.y + axis[2].y * tolerance, center.z + axis[2].z * tolerance, color.x, color.y, color.z);
+		
+		GlStateManager.enableDepth();
 	}
 	
 	private int checkTranslation(Ray3f ray) {
@@ -235,7 +263,69 @@ public class TransformControl {
 			startPoint.copy(point);
 		
 			if(attachedObject != null) {
-				attachedObject.rotate(axis[selectedAxis], Vec3f.angle(startDir, curDir) * (Vec3f.dot(cross, axis[selectedAxis]) > 0 ? 1 : -1));
+				attachedObject.rotate(center, axis[selectedAxis], Vec3f.angle(startDir, curDir) * (Vec3f.dot(cross, axis[selectedAxis]) > 0 ? 1 : -1));
+				
+				axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m01, attachedObject.transformation.m02);
+				axis[1].set(attachedObject.transformation.m10, attachedObject.transformation.m11, attachedObject.transformation.m12);
+				axis[2].set(attachedObject.transformation.m20, attachedObject.transformation.m21, attachedObject.transformation.m22);
+				
+				axis[0].normalise();
+				axis[1].normalise();
+				axis[2].normalise();
+			}
+		}
+	}
+	
+	private int checkScale(Ray3f ray) {
+		int res = -1;
+		float dist = Float.MAX_VALUE;
+		
+		float distX = ray.intersectLine(new Vec3f(axis[0]).mul(-tolerance).add(center), new Vec3f(axis[0]).mul(tolerance).add(center), 0.1f * tolerance);
+		float distY = ray.intersectLine(new Vec3f(axis[1]).mul(-tolerance).add(center), new Vec3f(axis[1]).mul(tolerance).add(center), 0.1f * tolerance);
+		float distZ = ray.intersectLine(new Vec3f(axis[2]).mul(-tolerance).add(center), new Vec3f(axis[2]).mul(tolerance).add(center), 0.1f * tolerance);
+		
+		if(distX < dist) {
+			dist = distX;
+			res = 0;
+		}
+		
+		if(distY < dist) {
+			dist = distY;
+			res = 1;
+		}
+		
+		if(distZ < dist) {
+			dist = distZ;
+			res = 2;
+		}
+		
+		if(res != -1) {
+			startPoint.set(ray.direction.x * dist + ray.origin.x, ray.direction.y * dist + ray.origin.y, ray.direction.z * dist + ray.origin.z);
+			prevScale = 1.0f;
+		}
+		
+		return res;
+	}
+	
+	private void processScale(Ray3f ray) {
+		float t = ray.intersectPlane(draggingPlane);
+		if(t < Float.MAX_VALUE && t > 1e-5) {
+			Vec3f point = new Vec3f(ray.direction).mul(t).add(ray.origin);
+			Vec3f startDir = new Vec3f(startPoint).sub(center);
+			Vec3f curDir = new Vec3f(point).sub(center);
+			float startLength = Vec3f.dot(axis[selectedAxis], startDir);
+			float curLength = Vec3f.dot(axis[selectedAxis], curDir);
+			
+			if(Math.abs(startLength) < 1e-4 || Math.abs(curLength) < 1e-4) {
+				return;
+			}
+			
+			float curScale = curLength / startLength;
+		
+			if(attachedObject != null) {
+				attachedObject.scale(startCenter, selectedAxis, 1.0f / prevScale);
+				attachedObject.scale(startCenter, selectedAxis, curScale);
+				prevScale = curScale;
 				
 				axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m01, attachedObject.transformation.m02);
 				axis[1].set(attachedObject.transformation.m10, attachedObject.transformation.m11, attachedObject.transformation.m12);

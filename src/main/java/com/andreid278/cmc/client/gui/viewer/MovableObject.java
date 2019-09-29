@@ -42,16 +42,15 @@ public abstract class MovableObject {
 		
 		Matrix4f.mul(translationMatrix, transformation, transformation);
 		
-		//Matrix4f.translate(dir, transformation, transformation);
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;
 	}
 	
-	public void rotate(Vec3f axis, float angle) {
+	public void rotate(Vec3f center, Vec3f axis, float angle) {
 		Matrix4f translationMatrix = new Matrix4f();
 		translationMatrix.setIdentity();
-		Matrix4f.translate(new Vec3f(transformation.m30, transformation.m31, transformation.m32), translationMatrix, translationMatrix);
+		Matrix4f.translate(new Vec3f(center), translationMatrix, translationMatrix);
 		
 		Matrix4f rotationMatrix = new Matrix4f();
 		rotationMatrix.setIdentity();
@@ -59,11 +58,46 @@ public abstract class MovableObject {
 		
 		Matrix4f inverseTranslationMatrix = new Matrix4f();
 		inverseTranslationMatrix.setIdentity();
-		Matrix4f.translate(new Vec3f(-transformation.m30, -transformation.m31, -transformation.m32), inverseTranslationMatrix, inverseTranslationMatrix);
+		Matrix4f.translate(new Vec3f(center).mul(-1.0f), inverseTranslationMatrix, inverseTranslationMatrix);
 		
 		Matrix4f.mul(inverseTranslationMatrix, transformation, transformation);
 		Matrix4f.mul(rotationMatrix, transformation, transformation);
 		Matrix4f.mul(translationMatrix, transformation, transformation);
+		
+		transformationFloatBuffer.rewind();
+		transformation.store(transformationFloatBuffer);
+		globalBBox.isValid = false;
+	}
+	
+	public void scale(Vec3f center, int axis, float coeff) {
+		Vec3f translationVector = new Vec3f(center);
+		
+		Matrix4f translationMatrix = new Matrix4f();
+		translationMatrix.setIdentity();
+		Matrix4f.translate(translationVector, translationMatrix, translationMatrix);
+		
+		Matrix4f scaleMatrix = new Matrix4f();
+		scaleMatrix.setIdentity();
+		Vec3f scaleVector = new Vec3f(1, 1, 1);
+		if(axis == 0) {
+			scaleVector.setX(coeff);
+		}
+		else if(axis == 1) {
+			scaleVector.setY(coeff);
+		}
+		else if(axis == 2) {
+			scaleVector.setZ(coeff);
+		}
+		Matrix4f.scale(scaleVector, scaleMatrix, scaleMatrix);
+		
+		Matrix4f inverseTranslationMatrix = new Matrix4f();
+		inverseTranslationMatrix.setIdentity();
+		translationVector.negate();
+		Matrix4f.translate(translationVector, inverseTranslationMatrix, inverseTranslationMatrix);
+		
+		Matrix4f.mul(transformation, translationMatrix, transformation);
+		Matrix4f.mul(transformation, scaleMatrix, transformation);
+		Matrix4f.mul(transformation, inverseTranslationMatrix, transformation);
 		
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
