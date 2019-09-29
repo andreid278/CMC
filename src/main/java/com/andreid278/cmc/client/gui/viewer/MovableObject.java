@@ -36,8 +36,35 @@ public abstract class MovableObject {
 	}
 	
 	public void translate(Vec3f dir) {
+		Matrix4f translationMatrix = new Matrix4f();
+		translationMatrix.setIdentity();
+		Matrix4f.translate(dir, translationMatrix, translationMatrix);
 		
-		Matrix4f.translate(dir, transformation, transformation);
+		Matrix4f.mul(translationMatrix, transformation, transformation);
+		
+		//Matrix4f.translate(dir, transformation, transformation);
+		transformationFloatBuffer.rewind();
+		transformation.store(transformationFloatBuffer);
+		globalBBox.isValid = false;
+	}
+	
+	public void rotate(Vec3f axis, float angle) {
+		Matrix4f translationMatrix = new Matrix4f();
+		translationMatrix.setIdentity();
+		Matrix4f.translate(new Vec3f(transformation.m30, transformation.m31, transformation.m32), translationMatrix, translationMatrix);
+		
+		Matrix4f rotationMatrix = new Matrix4f();
+		rotationMatrix.setIdentity();
+		Matrix4f.rotate(angle, axis, rotationMatrix, rotationMatrix);
+		
+		Matrix4f inverseTranslationMatrix = new Matrix4f();
+		inverseTranslationMatrix.setIdentity();
+		Matrix4f.translate(new Vec3f(-transformation.m30, -transformation.m31, -transformation.m32), inverseTranslationMatrix, inverseTranslationMatrix);
+		
+		Matrix4f.mul(inverseTranslationMatrix, transformation, transformation);
+		Matrix4f.mul(rotationMatrix, transformation, transformation);
+		Matrix4f.mul(translationMatrix, transformation, transformation);
+		
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;

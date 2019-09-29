@@ -44,6 +44,10 @@ public class TransformControl {
 		axis[2] = new Vec3f(0, 0, 1);
 	}
 	
+	public void setMode(int mode) {
+		this.mode = mode;
+	}
+	
 	public void attachObject(MovableObject object) {
 		attachedObject = object;
 		calculateCenterAxis();
@@ -77,6 +81,13 @@ public class TransformControl {
 				draggingPlane.setFromPointVectorVector(startPoint, axis[selectedAxis], v);
 			}
 		}
+		else if(mode == 1) {
+			selectedAxis = checkRotation(ray);
+			
+			if(selectedAxis != -1) {
+				draggingPlane.setFromPointNormal(center, axis[selectedAxis]);
+			}
+		}
 		
 		isDragged = selectedAxis != -1;
 		
@@ -88,6 +99,11 @@ public class TransformControl {
 			if(mode == 0) {
 				processTranslation(ray);
 			}
+			else if(mode == 1) {
+				processRotation(ray);
+			}
+			
+			return true;
 		}
 		return false;
 	}
@@ -113,7 +129,18 @@ public class TransformControl {
 	}
 	
 	private void drawRotation() {
+		GlStateManager.disableDepth();
 		
+		Vec3i color;
+		
+		color = selectedAxis == 0 ? selectionColor : colorAxisX;
+		GuiUtils.drawCircle(center, axis[0], tolerance, 32, color.x, color.y, color.z);
+		color = selectedAxis == 1 ? selectionColor : colorAxisY;
+		GuiUtils.drawCircle(center, axis[1], tolerance, 32, color.x, color.y, color.z);
+		color = selectedAxis == 2 ? selectionColor : colorAxisZ;
+		GuiUtils.drawCircle(center, axis[2], tolerance, 32, color.x, color.y, color.z);
+		
+		GlStateManager.enableDepth();
 	}
 	
 	private void drawScaling() {
@@ -124,9 +151,9 @@ public class TransformControl {
 		int res = -1;
 		float dist = Float.MAX_VALUE;
 		
-		float distX = ray.intersectLine(center, new Vec3f(center).add(axis[0]).mul(tolerance), 0.1f * tolerance);
-		float distY = ray.intersectLine(center, new Vec3f(center).add(axis[1]).mul(tolerance), 0.1f * tolerance);
-		float distZ = ray.intersectLine(center, new Vec3f(center).add(axis[2]).mul(tolerance), 0.1f * tolerance);
+		float distX = ray.intersectLine(center, new Vec3f(axis[0]).mul(tolerance).add(center), 0.1f * tolerance);
+		float distY = ray.intersectLine(center, new Vec3f(axis[1]).mul(tolerance).add(center), 0.1f * tolerance);
+		float distZ = ray.intersectLine(center, new Vec3f(axis[2]).mul(tolerance).add(center), 0.1f * tolerance);
 		
 		if(distX < dist) {
 			dist = distX;
@@ -167,15 +194,72 @@ public class TransformControl {
 		}
 	}
 	
+	private int checkRotation(Ray3f ray) {
+		int res = -1;
+		float dist = Float.MAX_VALUE;
+		
+		float distX = ray.intersectCircle(center, axis[0], tolerance, 0.1f * tolerance);
+		float distY = ray.intersectCircle(center, axis[1], tolerance, 0.1f * tolerance);
+		float distZ = ray.intersectCircle(center, axis[2], tolerance, 0.1f * tolerance);
+		
+		if(distX < dist) {
+			dist = distX;
+			res = 0;
+		}
+		
+		if(distY < dist) {
+			dist = distY;
+			res = 1;
+		}
+		
+		if(distZ < dist) {
+			dist = distZ;
+			res = 2;
+		}
+		
+		if(res != -1) {
+			startPoint.set(ray.direction.x * dist + ray.origin.x, ray.direction.y * dist + ray.origin.y, ray.direction.z * dist + ray.origin.z);
+		}
+		
+		return res;
+	}
+	
+	private void processRotation(Ray3f ray) {
+		float t = ray.intersectPlane(draggingPlane);
+		if(t < Float.MAX_VALUE && t > 1e-5) {
+			Vec3f point = new Vec3f(ray.direction).mul(t).add(ray.origin);
+			Vec3f startDir = new Vec3f(startPoint).sub(center);
+			Vec3f curDir = new Vec3f(point).sub(center);
+			Vec3f cross = new Vec3f();
+			Vec3f.cross(startDir, curDir, cross);
+			startPoint.copy(point);
+		
+			if(attachedObject != null) {
+				attachedObject.rotate(axis[selectedAxis], Vec3f.angle(startDir, curDir) * (Vec3f.dot(cross, axis[selectedAxis]) > 0 ? 1 : -1));
+				
+				axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m01, attachedObject.transformation.m02);
+				axis[1].set(attachedObject.transformation.m10, attachedObject.transformation.m11, attachedObject.transformation.m12);
+				axis[2].set(attachedObject.transformation.m20, attachedObject.transformation.m21, attachedObject.transformation.m22);
+				
+				axis[0].normalise();
+				axis[1].normalise();
+				axis[2].normalise();
+			}
+		}
+	}
+	
 	private void calculateCenterAxis() {
 		if(attachedObject != null && attachedObject.GlobalBoundingBox().isValid) {
 			center.set(attachedObject.GlobalBoundingBox().getCenterX(),
 					attachedObject.GlobalBoundingBox().getCenterY(),
 					attachedObject.GlobalBoundingBox().getCenterZ());
 			
-			axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m10, attachedObject.transformation.m20);
-			axis[1].set(attachedObject.transformation.m01, attachedObject.transformation.m11, attachedObject.transformation.m21);
-			axis[2].set(attachedObject.transformation.m02, attachedObject.transformation.m12, attachedObject.transformation.m22);
+			//axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m10, attachedObject.transformation.m20);
+			//axis[1].set(attachedObject.transformation.m01, attachedObject.transformation.m11, attachedObject.transformation.m21);
+			//axis[2].set(attachedObject.transformation.m02, attachedObject.transformation.m12, attachedObject.transformation.m22);
+			axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m01, attachedObject.transformation.m02);
+			axis[1].set(attachedObject.transformation.m10, attachedObject.transformation.m11, attachedObject.transformation.m12);
+			axis[2].set(attachedObject.transformation.m20, attachedObject.transformation.m21, attachedObject.transformation.m22);
 			
 			axis[0].normalise();
 			axis[1].normalise();

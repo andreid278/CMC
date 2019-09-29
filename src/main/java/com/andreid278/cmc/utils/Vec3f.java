@@ -22,10 +22,12 @@ public class Vec3f extends Vector3f {
 		this.z = p.z;
 	}
 	
-	public void copy(Vec3f p) {
+	public Vec3f copy(Vec3f p) {
 		this.x = p.x;
 		this.y = p.y;
 		this.z = p.z;
+		
+		return this;
 	}
 	
 	public void min(Vec3f p) {
@@ -117,5 +119,18 @@ public class Vec3f extends Vector3f {
 	
 	public float distTo(Vec3f v) {
 		return (float) Math.sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y) + (z - v.z) * (z - v.z));
+	}
+	
+	public void buildSpace(Vec3f v1, Vec3f v2) {
+		v1.set(1, 0, 0);
+		if(Math.abs(Vec3f.dot(this, v1)) > this.length() * 0.9999) {
+			v1.set(0, 1, 0);
+		}
+		
+		Vec3f.cross(this, v1, v2);
+		v2.normalise();
+		
+		Vec3f.cross(this, v2, v1);
+		v1.normalise();
 	}
 }

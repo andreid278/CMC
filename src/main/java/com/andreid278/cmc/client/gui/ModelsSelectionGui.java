@@ -38,14 +38,21 @@ public class ModelsSelectionGui extends GuiScreen {
 		//}
 		
 		this.buttonList.clear();
+		
 		this.buttonList.add(new GuiButton(0, 10, 210, "Test save"));
+		
 		this.buttonList.add(new GuiButton(1, 220, 210, "Assign to the player"));
-		this.buttonList.add(new GuiButton(2, 440, 10, "Head"));
-		this.buttonList.add(new GuiButton(3, 440, 30, "Torso"));
-		this.buttonList.add(new GuiButton(4, 440, 50, "LArm"));
-		this.buttonList.add(new GuiButton(5, 440, 70, "RArm"));
-		this.buttonList.add(new GuiButton(6, 440, 90, "LLeg"));
-		this.buttonList.add(new GuiButton(7, 440, 110, "RLeg"));
+		
+		this.buttonList.add(new GuiButton(2, 420, 10, 40, 20, "Head"));
+		this.buttonList.add(new GuiButton(3, 420, 30, 40, 20, "Torso"));
+		this.buttonList.add(new GuiButton(4, 420, 50, 40, 20, "LArm"));
+		this.buttonList.add(new GuiButton(5, 420, 70, 40, 20, "RArm"));
+		this.buttonList.add(new GuiButton(6, 420, 90, 40, 20, "LLeg"));
+		this.buttonList.add(new GuiButton(7, 420, 110, 40, 20, "RLeg"));
+		
+		this.buttonList.add(new GuiButton(8, 420, 140, 20, 20, "T"));
+		this.buttonList.add(new GuiButton(9, 420, 160, 20, 20, "R"));
+		this.buttonList.add(new GuiButton(10, 420, 180, 20, 20, "S"));
 	}
 	
 	@Override
@@ -128,6 +135,15 @@ public class ModelsSelectionGui extends GuiScreen {
 			break;
 		case 7:
 			bodyPart = BodyPart.RightLeg;
+			break;
+		case 8:
+			selectedModelViewer.transformControl.setMode(0);
+			break;
+		case 9:
+			selectedModelViewer.transformControl.setMode(1);
+			break;
+		case 10:
+			selectedModelViewer.transformControl.setMode(2);
 			break;
 		}
 	}

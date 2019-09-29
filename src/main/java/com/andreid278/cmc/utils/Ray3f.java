@@ -134,4 +134,24 @@ public class Ray3f {
 		
 		return t >= 0 ? t : Float.MAX_VALUE;
 	}
+	
+	public float intersectCircle(Vec3f center, Vec3f normal, float rad, float tolerance) {
+		Plane plane = new Plane(normal, center);
+		
+		float t = intersectPlane(plane);
+		
+		if(t == Float.MAX_VALUE) {
+			return t;
+		}
+		
+		Vec3f p = new Vec3f(direction).mul(t).add(origin);
+		
+		float distToCenter = p.distTo(center);
+		
+		if(distToCenter > rad - tolerance && distToCenter < rad + tolerance) {
+			return t;
+		}
+		
+		return Float.MAX_VALUE;
+	}
 }
