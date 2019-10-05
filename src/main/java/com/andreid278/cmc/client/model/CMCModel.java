@@ -35,7 +35,7 @@ import net.minecraft.client.renderer.vertex.VertexFormat;
 import net.minecraft.client.renderer.vertex.VertexFormatElement;
 
 public class CMCModel {
-	private List<MaterialGroup> materials = Lists.newArrayList();
+	public List<MaterialGroup> materials = Lists.newArrayList();
 	public Box3f bBox = new Box3f();
 
 	public CMCModel() {

@@ -10,7 +10,7 @@ import java.util.UUID;
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.gui.ModelsSelectionGui;
 import com.andreid278.cmc.client.model.CMCModel;
-import com.andreid278.cmc.client.model.ModelReader;
+import com.andreid278.cmc.client.model.reader.ModelReader;
 import com.andreid278.cmc.client.render.PlayerRenderer;
 import com.andreid278.cmc.client.render.TETestRenderer;
 import com.andreid278.cmc.common.CMCData;
@@ -136,7 +136,11 @@ public class ClientProxy extends CommonProxy {
 			}
 		})) {
 			UUID uuid = UUID.fromString(f.substring(0, f.lastIndexOf(".")));
-			ModelReader reader = new ModelReader(uuid, false);
+			ModelReader reader = new ModelReader(uuid);
+			if(!reader.read()) {
+				System.out.println("Can't read model " + uuid.toString());
+				continue;
+			}
 			CMCModel model = reader.getModel();
 			ModelStorage.instance.addModel(uuid, model);
 			System.out.println(uuid.toString());

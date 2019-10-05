@@ -1,6 +1,7 @@
 package com.andreid278.cmc.client.gui.viewer;
 
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
 import net.minecraft.client.Minecraft;
@@ -19,9 +20,13 @@ public class PlayerObject extends MovableObject {
 	public Box3f bBox = new Box3f();
 	
 	public PlayerObject() {
+		super();
+		
 		float height = Minecraft.getMinecraft().player.height;
 		bBox.addPoint(new Vec3f(-height * 0.5f, -height * 0.5f, -height * 0.5f));
 		bBox.addPoint(new Vec3f(height * 0.5f, height * 0.5f, height * 0.5f));
+		
+		isMovable = false;
 	}
 
 	@Override
@@ -112,6 +117,11 @@ public class PlayerObject extends MovableObject {
 	@Override
 	public Box3f BoundingBox() {
 		return bBox;
+	}
+	
+	@Override
+	protected float intersectWithLocalRay(Ray3f ray) {
+		return Float.MAX_VALUE;
 	}
 
 }

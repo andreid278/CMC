@@ -32,13 +32,13 @@
         }
     },
     "textures": {
-        "particle": "cmc:blocks/testblock",
-        "down": "cmc:blocks/testblock",
-        "up": "cmc:blocks/testblock",
-        "north": "cmc:blocks/testblock",
-        "east": "cmc:blocks/testblock",
-        "south": "cmc:blocks/testblock",
-        "west": "cmc:blocks/testblock"
+        "particle": "cmc:blocks/selectorblock",
+        "down": "cmc:blocks/selectorblock",
+        "up": "cmc:blocks/selectorblock",
+        "north": "cmc:blocks/selectorblock",
+        "east": "cmc:blocks/selectorblock",
+        "south": "cmc:blocks/selectorblock",
+        "west": "cmc:blocks/selectorblock"
     },
     "elements": [
         {   "from": [ 0, 0, 0 ],

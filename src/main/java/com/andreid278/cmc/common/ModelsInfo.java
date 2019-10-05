@@ -18,7 +18,6 @@ import java.util.Map.Entry;
 
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
-import com.andreid278.cmc.client.model.ModelReader;
 import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
 import com.google.common.base.Charsets;
 

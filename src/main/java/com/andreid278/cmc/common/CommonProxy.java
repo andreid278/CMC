@@ -2,7 +2,8 @@ package com.andreid278.cmc.common;
 
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.gui.GuiHandler;
-import com.andreid278.cmc.common.block.TestBlock;
+import com.andreid278.cmc.common.block.BlockModelsCreator;
+import com.andreid278.cmc.common.block.BlockModelsSelector;
 import com.andreid278.cmc.common.event.PlayerEvents;
 import com.andreid278.cmc.common.network.MessageBroadcastResetPlayerModels;
 import com.andreid278.cmc.common.network.MessagePlayerLoggedIn;
@@ -31,18 +32,22 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class CommonProxy {
 	
-	public static TestBlock testBlock;
-	public static Item itemTestBlock;
+	public static BlockModelsSelector selectorBlock;
+	public static Item itemSelectorBlock;
+	
+	public static BlockModelsCreator creatorBlock;
+	public static Item itemCreatorBlock;
 	
 	public void preInit(FMLPreInitializationEvent event) {
-		testBlock = new TestBlock(Material.IRON);
-		itemTestBlock = new ItemBlock(testBlock).setRegistryName(testBlock.getRegistryName());
+		selectorBlock = new BlockModelsSelector(Material.IRON);
+		itemSelectorBlock = new ItemBlock(selectorBlock).setRegistryName(selectorBlock.getRegistryName());
+		creatorBlock = new BlockModelsCreator(Material.IRON);
+		itemCreatorBlock = new ItemBlock(creatorBlock).setRegistryName(creatorBlock.getRegistryName());
 		MinecraftForge.EVENT_BUS.register(new ItemBlockRegister());
 		MinecraftForge.EVENT_BUS.register(new PlayerEvents());
 	}
 	
 	public void init(FMLInitializationEvent event) {
-		GameRegistry.registerTileEntity(TETest.class, "tetest");
 		NetworkRegistry.INSTANCE.registerGuiHandler(CMC.instance, new GuiHandler());
 	}
 	
@@ -53,17 +58,18 @@ public class CommonProxy {
 	private class ItemBlockRegister {
 		@SubscribeEvent
 		public void registerBlocks(RegistryEvent.Register<Block> event) {
-			event.getRegistry().registerAll(testBlock);
+			event.getRegistry().registerAll(selectorBlock, creatorBlock);
 		}
 
 		@SubscribeEvent
 		public void registerItems(RegistryEvent.Register<Item> event) {
-			event.getRegistry().registerAll(itemTestBlock);
+			event.getRegistry().registerAll(itemSelectorBlock, itemCreatorBlock);
 		}
 		
 		@SubscribeEvent
 		public void registerModels(ModelRegistryEvent event) {
-			ModelLoader.setCustomModelResourceLocation(itemTestBlock, 0, new ModelResourceLocation(itemTestBlock.getRegistryName(), "inventory"));
+			ModelLoader.setCustomModelResourceLocation(itemSelectorBlock, 0, new ModelResourceLocation(itemSelectorBlock.getRegistryName(), "inventory"));
+			ModelLoader.setCustomModelResourceLocation(itemCreatorBlock, 0, new ModelResourceLocation(itemCreatorBlock.getRegistryName(), "inventory"));
 		}
 	}
 	

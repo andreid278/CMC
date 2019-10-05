@@ -2,6 +2,7 @@ package com.andreid278.cmc.client.model;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.http.util.ByteArrayBuffer;
@@ -13,6 +14,7 @@ import com.andreid278.cmc.utils.Vec3i;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.minecraft.client.renderer.Matrix4f;
 
 public class MaterialGroup {
 	public ByteBuffer indices = null;
@@ -218,5 +220,87 @@ public class MaterialGroup {
 		rewind();
 		
 		isValid = indicesCount > 0 && verticesCount > 0;
+	}
+	
+	public int trianglesNum() {
+		return indicesCount;
+	}
+	
+	public void getTriangle(int index, Vec3i res) {
+		res.set(indices.getInt(index * 3 * 4), indices.getInt(index * 3 * 4 + 4), indices.getInt(index * 3 * 4 + 4 + 4));
+	}
+	
+	public void getVertex(int index, Vec3f res) {
+		res.set(vertices.getFloat(index * 3 * 4), vertices.getFloat(index * 3 * 4 + 4), vertices.getFloat(index * 3 * 4 + 4 + 4));
+	}
+	
+	public MaterialGroup copyWithTransformation(Matrix4f transformation) {
+		MaterialGroup copiedMaterialGroup = new MaterialGroup();
+		
+		if(!isValid) {
+			return copiedMaterialGroup;
+		}
+		
+		List<Vec3i> i = new ArrayList<>();
+		List<Vec3f> v = new ArrayList<>();
+		List<Integer> c = null;
+		List<Vec3f> n = null;
+		List<Vec2f> t = null;
+		
+		indices.rewind();
+		for(int k = 0; k < indicesCount; k++) {
+			int x = indices.getInt();
+			int y = indices.getInt();
+			int z = indices.getInt();
+			i.add(new Vec3i(x, y, z));
+		}
+		
+		vertices.rewind();
+		for(int k = 0; k < verticesCount; k++) {
+			float x = vertices.getFloat();
+			float y = vertices.getFloat();
+			float z = vertices.getFloat();
+			Vec3f pos = new Vec3f(x, y, z);
+			pos.applyMatrix(transformation);
+			v.add(pos);
+		}
+		
+		if(colorsCount > 0) {
+			c = new ArrayList<>();
+			colors.rewind();
+			for(int k = 0; k < colorsCount; k++) {
+				int x = colors.get();
+				int y = colors.get();
+				int z = colors.get();
+				c.add(x * 256 * 256 + y * 256 + z);
+			}
+		}
+		
+		if(normalsCount > 0) {
+			n = new ArrayList<>();
+			normals.rewind();
+			for(int k = 0; k < normalsCount; k++) {
+				float x = normals.getFloat();
+				float y = normals.getFloat();
+				float z = normals.getFloat();
+				Vec3f normal = new Vec3f(x, y, z);
+				normal.transformDirection(transformation);
+				n.add(normal);
+			}
+		}
+		
+		if(texCoordsCount > 0) {
+			t = new ArrayList<>();
+			texCoords.rewind();
+			for(int k = 0; k < texCoordsCount; k++) {
+				float x = texCoords.getFloat();
+				float y = texCoords.getFloat();
+				t.add(new Vec2f(x, y));
+			}
+		}
+		
+		copiedMaterialGroup.setData(i, v, c, n, t);
+		
+		return copiedMaterialGroup;
 	}
 }

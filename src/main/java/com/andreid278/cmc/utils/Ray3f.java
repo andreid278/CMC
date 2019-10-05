@@ -1,5 +1,9 @@
 package com.andreid278.cmc.utils;
 
+import com.andreid278.cmc.client.gui.viewer.MovableObject;
+import com.andreid278.cmc.client.model.CMCModel;
+import com.andreid278.cmc.client.model.MaterialGroup;
+
 import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 
@@ -153,5 +157,60 @@ public class Ray3f {
 		}
 		
 		return Float.MAX_VALUE;
+	}
+	
+	public float intersectTriangle(Vec3f p1, Vec3f p2, Vec3f p3) {
+		Vec3f v1 = new Vec3f(p2).sub(p1);
+		Vec3f v2 = new Vec3f(p3).sub(p1);
+		Vec3f pVec = new Vec3f();
+		Vec3f.cross(direction, v2, pVec);
+		float det = Vec3f.dot(v1, pVec);
+		
+		if (det < 1e-8 && det > -1e-8) {
+			return Float.MAX_VALUE;
+		}
+		
+		float invDet = 1.0f / det;
+		Vec3f tVec = new Vec3f(origin).sub(p1);
+		float u = Vec3f.dot(pVec, tVec) * invDet;
+		if(u < 0 || u > 1) {
+			return Float.MAX_VALUE;
+		}
+		
+		Vec3f qVec = new Vec3f();
+		Vec3f.cross(tVec, v1, qVec);
+		float v = Vec3f.dot(direction, qVec) * invDet;
+		if(v < 0 || v + u > 1) {
+			return Float.MAX_VALUE;
+		}
+		
+		return Vec3f.dot(v2, qVec) * invDet;
+	}
+	
+	public float intersectCMCModel(CMCModel model) {
+		float res = Float.MAX_VALUE;
+		
+		Vec3i triangle = new Vec3i(0, 0, 0);
+		Vec3f p1 = new Vec3f();
+		Vec3f p2 = new Vec3f();
+		Vec3f p3 = new Vec3f();
+		
+		for(MaterialGroup material : model.materials) {
+			int trianglesNum = material.trianglesNum();
+			for(int i = 0; i < trianglesNum; i++) {
+				material.getTriangle(i, triangle);
+				material.getVertex(triangle.x, p1);
+				material.getVertex(triangle.y, p2);
+				material.getVertex(triangle.z, p3);
+				
+				float triangleIntersection = intersectTriangle(p1, p2, p3);
+				
+				if(triangleIntersection < res) {
+					res = triangleIntersection;
+				}
+			}
+		}
+		
+		return res;
 	}
 }

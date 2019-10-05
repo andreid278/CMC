@@ -41,6 +41,7 @@ public class ModelViewer extends Gui {
 	public boolean canAttachTransformControl = false;
 	
 	public boolean isDragged = false;
+	public boolean wasDragged = false;
 	public int mouseStartX;
 	public int mouseStartY;
 	
@@ -48,6 +49,8 @@ public class ModelViewer extends Gui {
 	
 	public int curMouseX;
 	public int curMouseY;
+	
+	MovableObject intersectionResult = null;
 	
 	public ModelViewer(int x, int y, int w, int h) {
 		this.x = x;
@@ -76,6 +79,13 @@ public class ModelViewer extends Gui {
 		//Quaternion rot = new Quaternion();
 		//rot.setFromAxisAngle(new Vector4f(1, 0, 0, (float) -Math.PI * 0.5f));
 		//Quaternion.mul(rot, cameraRotation, cameraRotation);
+	}
+	
+	public void addObject(CMCModel model) {
+		objects.add(new ModelObject(model));
+		
+		globalBBox.reset();
+		calculateBBox();
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
@@ -137,7 +147,9 @@ public class ModelViewer extends Gui {
 	}
 	
 	public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
+		intersectionResult = null;
 		if(isMouseInside(mouseX, mouseY)) {
+			wasDragged = false;
 			if(mouseButton == 0) {
 				Ray3f ray = camera.project(mouseX, mouseY, globalBBox);
 				System.out.println("(" + ray.origin.x + ", " + ray.origin.y + ", " + ray.origin.z + "), " + "(" + ray.direction.x + ", " + ray.direction.y + ", " + ray.direction.z + ")");
@@ -147,11 +159,25 @@ public class ModelViewer extends Gui {
 						return;
 					}
 				}
+				
+				if(canAttachTransformControl) {
+					float resDist = Float.MAX_VALUE;
+					for(MovableObject object : objects) {
+						float dist = object.intersectRay(ray);
+						if(dist < resDist) {
+							resDist = dist;
+							intersectionResult = object;
+						}
+					}
+				}
 			}
 			
 			isDragged = true;
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
+		}
+		else {
+			wasDragged = true;
 		}
 	}
 	
@@ -159,6 +185,8 @@ public class ModelViewer extends Gui {
 		if(!isMouseInside(mouseX, mouseY)) {
 			return false;
 		}
+		
+		wasDragged = true;
 		
 		if(isDragged) {
 			if(clickedMouseButton == 0) {
@@ -188,6 +216,18 @@ public class ModelViewer extends Gui {
 	public void mouseReleased(int mouseX, int mouseY, int state) {
 		isDragged = false;
 		transformControl.mouseReleased(mouseX, mouseY, state);
+		
+		// Click
+		if(!wasDragged && isMouseInside(mouseX, mouseY)) {
+			if(intersectionResult != null) {
+				System.out.println("Intersection");
+				transformControl.attachObject(intersectionResult);
+				return;
+			}
+			else {
+				transformControl.attachObject(null);
+			}
+		}
 	}
 	
 	public void handleMouseInput() {
@@ -246,5 +286,9 @@ public class ModelViewer extends Gui {
 	
 	public void resetCamera() {
 		camera.resetTransformation();
+	}
+	
+	public void saveModel() {
+		
 	}
 }

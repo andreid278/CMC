@@ -59,11 +59,17 @@ public class Vec3f extends Vector3f {
 		float prevY = y;
 		float prevZ = z;
 		
-		float w = 1.0f / (m.m30 * prevX + m.m31 * prevY + m.m32 * prevZ + m.m33);
+		/*float w = 1.0f / (m.m30 * prevX + m.m31 * prevY + m.m32 * prevZ + m.m33);
 		
 		x = (m.m00 * prevX + m.m01 * prevY + m.m02 * prevZ + m.m03) * w;
 		y = (m.m10 * prevX + m.m11 * prevY + m.m12 * prevZ + m.m13) * w;
-		z = (m.m20 * prevX + m.m21 * prevY + m.m22 * prevZ + m.m23) * w;
+		z = (m.m20 * prevX + m.m21 * prevY + m.m22 * prevZ + m.m23) * w;*/
+		
+		float w = 1.0f / (m.m03 * prevX + m.m13 * prevY + m.m23 * prevZ + m.m33);
+		
+		x = (m.m00 * prevX + m.m10 * prevY + m.m20 * prevZ + m.m30) * w;
+		y = (m.m01 * prevX + m.m11 * prevY + m.m21 * prevZ + m.m31) * w;
+		z = (m.m02 * prevX + m.m12 * prevY + m.m22 * prevZ + m.m32) * w;
 	}
 	
 	public void transformDirection(Matrix4f m) {
@@ -71,9 +77,9 @@ public class Vec3f extends Vector3f {
 		float prevY = y;
 		float prevZ = z;
 		
-		x = m.m00 * prevX + m.m01 * prevY + m.m02 * prevZ;
-		y = m.m10 * prevX + m.m11 * prevY + m.m12 * prevZ;
-		z = m.m20 * prevX + m.m21 * prevY + m.m22 * prevZ;
+		x = m.m00 * prevX + m.m10 * prevY + m.m20 * prevZ;
+		y = m.m01 * prevX + m.m11 * prevY + m.m21 * prevZ;
+		z = m.m02 * prevX + m.m12 * prevY + m.m22 * prevZ;
 		
 		this.normalise();
 	}

@@ -3,6 +3,7 @@ package com.andreid278.cmc.client.gui.viewer;
 import java.nio.FloatBuffer;
 
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
 import net.minecraft.client.renderer.GLAllocation;
@@ -21,6 +22,8 @@ public abstract class MovableObject {
 		transformation.store(transformationFloatBuffer);
 		
 		globalBBox = new Box3f();
+		
+		isMovable = true;
 	}
 	
 	public abstract void draw();
@@ -103,4 +106,20 @@ public abstract class MovableObject {
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;
 	}
+	
+	public float intersectRay(Ray3f ray) {
+		if(!isMovable) {
+			return Float.MAX_VALUE;
+		}
+		
+		Ray3f localRay = new Ray3f(ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z);
+		Matrix4f inverseMatrix = new Matrix4f();
+		inverseMatrix.setIdentity();
+		Matrix4f.invert(transformation, inverseMatrix);
+		localRay.transform(inverseMatrix);
+		
+		return intersectWithLocalRay(localRay);
+	}
+	
+	protected abstract float intersectWithLocalRay(Ray3f ray);
 }

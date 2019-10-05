@@ -7,7 +7,6 @@ import java.util.UUID;
 import com.andreid278.cmc.CMC;
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
-import com.andreid278.cmc.client.model.ModelReader;
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.common.ModelsInfo;
 import com.andreid278.cmc.common.network.MessageDataToClient;

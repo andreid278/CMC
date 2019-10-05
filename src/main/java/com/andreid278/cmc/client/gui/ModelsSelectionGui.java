@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import com.andreid278.cmc.client.ModelStorage;
 import com.andreid278.cmc.client.model.CMCModel;
-import com.andreid278.cmc.client.model.ModelReader;
 import com.andreid278.cmc.client.model.CMCModelOnPlayer.BodyPart;
 import com.andreid278.cmc.common.ModelsInfo.ModelInfo;
 import com.andreid278.cmc.common.network.DataLoadingHelper;
@@ -100,12 +99,12 @@ public class ModelsSelectionGui extends GuiScreen {
 	protected void actionPerformed(GuiButton button) throws IOException {
 		switch(button.id) {
 		case 0:
-			UUID uuid = UUID.randomUUID();
+			/*UUID uuid = UUID.randomUUID();
 			ModelReader reader = new ModelReader(uuid, true);
 			CMCModel model = reader.getModel();
 			model.saveToFile(uuid.toString());
 			ModelStorage.instance.addModel(uuid, model);
-			DataLoadingHelper.sendDataToServer(uuid, Minecraft.getMinecraft().player.getName(), "Name", true);
+			DataLoadingHelper.sendDataToServer(uuid, Minecraft.getMinecraft().player.getName(), "Name", true);*/
 			break;
 		case 1:
 			if(selectedModelUUID != null && selectedModelViewer.modelObject.isModelNotNull()) {

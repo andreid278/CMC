@@ -146,6 +146,6 @@ public class ViewerCamera {
 		Vec3f inverseCameraTranslation = new Vec3f(cameraTranslation);
 		inverseCameraTranslation.negate();
 		Matrix4f.translate(inverseCameraTranslation, cameraMatrix, cameraMatrix);
-		cameraMatrix.transpose();
+		//cameraMatrix.transpose();
 	}
 }
