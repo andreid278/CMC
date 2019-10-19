@@ -1,5 +1,8 @@
 package com.andreid278.cmc.client.gui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.lwjgl.opengl.GL11;
 
 import com.andreid278.cmc.utils.Vec3f;
@@ -48,4 +51,32 @@ public class GuiUtils {
 		}
 		tessellator.draw();
 	}
+	
+	/*public static void drawSphere(Vec3f center, float radius, int numSegX, int numSegY, int r, int g, int b) {
+		double angleX = Math.PI * 2 / numSegX;
+		double angleY = Math.PI / numSegY;
+		Vec3f dir1 = new Vec3f();
+		Vec3f dir2 = new Vec3f();
+		Vec3f dir3 = new Vec3f();
+		for(int i = 0; i < numSegX; i++) {
+			dir1.set((float)Math.cos(angleX * i), (float)Math.sin(angleX * i), 0.0f);
+			dir2.set((float)Math.cos(angleX * (i + 1)), (float)Math.sin(angleX * (i + 1)), 0.0f);
+			for(int j = 0; j < numSegY; j++) {
+				
+			}
+		}
+	}
+	
+	public static List<Vec3f> calculateSphere(int numSegX, int numSegY) {
+		List<Vec3f> res = new ArrayList<>();
+		float angleX = (float) (Math.PI * 2 / numSegX);
+		float stepY = 1.0f / numSegY;
+		for(int i = 0; i < numSegY; i++) {
+			for(int j = 0; j < numSegX; j++) {
+				
+			}
+		}
+		
+		return res;
+	}*/
 }

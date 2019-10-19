@@ -11,9 +11,6 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.List;
 
-import javax.vecmath.Vector2f;
-import javax.vecmath.Vector3f;
-
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL13;
@@ -24,9 +21,11 @@ import org.lwjgl.opengl.GL32;
 
 import com.andreid278.cmc.common.CMCData;
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.Vec3f;
 import com.google.common.collect.Lists;
 
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -57,6 +56,8 @@ public class CMCModel {
 		
 		boolean oldCulling = GL11.glGetBoolean(GL11.GL_CULL_FACE);
 		GL11.glDisable(GL11.GL_CULL_FACE);
+		
+		int prevTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
 
 		for(int i = 0; i < materials.size(); i++) {
 			MaterialGroup material = materials.get(i);
@@ -64,8 +65,20 @@ public class CMCModel {
 			if(!material.isValid) continue;
 			
 			material.rewind();
+			
+			boolean texEnable = GL11.glGetBoolean(GL11.GL_TEXTURE_2D);
+			
+			material.createTexture();
+			
+			if(material.textureID != 0) {
+				GL11.glEnable(GL11.GL_TEXTURE_2D);
+			}
+			
+			material.bindTexture();
 
 			OpenGlHelper.glBindBuffer(OpenGlHelper.GL_ARRAY_BUFFER, 0);
+			
+			GlStateManager.color(material.materialColor.x, material.materialColor.y, material.materialColor.z);
 			
 			GlStateManager.glEnableClientState(GL11.GL_VERTEX_ARRAY);
 			GlStateManager.glVertexPointer(3, GL11.GL_FLOAT, 0, material.vertices);
@@ -101,6 +114,12 @@ public class CMCModel {
 			if(material.texCoords != null) {
 				GlStateManager.glDisableClientState(GL11.GL_TEXTURE_COORD_ARRAY);
 			}
+			
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+			
+			if(!texEnable) {
+				GL11.glDisable(GL11.GL_TEXTURE_2D);
+			}
 		}
 		
 		if(oldCulling) {
@@ -112,6 +131,8 @@ public class CMCModel {
 		if(tex2d) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
 		}
+		
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, prevTexture);
 	}
 
 	private void disableAll() {
@@ -208,6 +229,24 @@ public class CMCModel {
 		int b = stream.read();
 		int a = stream.read();
 		return a + b * 256 + c * 256 * 256 + d * 256 * 256 * 256;
+	}
+	
+	public void normalize() {
+		if(!bBox.isValid) {
+			return;
+		}
+		
+		Matrix4f transformation = new Matrix4f();
+		transformation.setIdentity();
+		float scale = 1.0f / Math.max(bBox.getSizeX(), Math.max(bBox.getSizeY(), bBox.getSizeZ()));
+		Matrix4f.scale(new Vec3f(scale, scale, scale), transformation, transformation);
+		Matrix4f.translate(new Vec3f(-bBox.getCenterX(), -bBox.getCenterY(), -bBox.getCenterZ()), transformation, transformation);
+		
+		for(MaterialGroup material : materials) {
+			material.applyTransformation(transformation);
+		}
+		
+		calculateBBox();
 	}
 
 }

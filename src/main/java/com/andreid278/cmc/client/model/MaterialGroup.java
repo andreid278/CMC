@@ -1,11 +1,15 @@
 package com.andreid278.cmc.client.model;
 
+import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.http.util.ByteArrayBuffer;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL12;
 
 import com.andreid278.cmc.utils.Box3f;
 import com.andreid278.cmc.utils.Vec2f;
@@ -28,12 +32,23 @@ public class MaterialGroup {
 	public ByteBuffer texCoords = null;
 	public int texCoordsCount = 0;
 	
+	ByteBuffer textureBuffer = null;
+	int width = 0;
+	int height = 0;
+	int textureID = 0;
+	
+	public Vec3f materialColor = new Vec3f(1.0f, 1.0f, 1.0f);
+	
 	public Box3f bBox = new Box3f();
 	
 	public boolean isValid = false;
 
 	public MaterialGroup() {
 		
+	}
+	
+	public void setColor (float x, float y, float z) {
+		materialColor.set(x, y, z);
 	}
 	
 	public void setData(List<Vec3i> i, List<Vec3f> v, List<Integer> c, List<Vec3f> n, List<Vec2f> t) {
@@ -129,6 +144,54 @@ public class MaterialGroup {
 		}
 	}
 	
+	public void setTexture(int[] image, int w, int h) {
+		if(texCoordsCount == 0) {
+			return;
+		}
+		
+		textureBuffer = BufferUtils.createByteBuffer(w * h * 4);
+		textureBuffer.order(ByteOrder.nativeOrder());
+		width = w;
+		height = h;
+		
+		for(int y = 0; y < h; y++) {
+			for(int x = 0; x < w; x++) {
+				int pixel = image[y * w + x];
+				textureBuffer.put((byte) ((pixel >> 16) & 0xff));
+				textureBuffer.put((byte) ((pixel >> 8) & 0xff));
+				textureBuffer.put((byte) (pixel & 0xff));
+				textureBuffer.put((byte) ((pixel >> 24) & 0xff));
+			}
+		}
+	}
+	
+	public void createTexture() {
+		if(textureID != 0 || textureBuffer == null) {
+			return;
+		}
+		
+		textureBuffer.rewind();
+		
+		textureID = GL11.glGenTextures();
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureID);
+		
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+		
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+		
+		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, textureBuffer);
+	}
+	
+	public void bindTexture() {
+		if(textureID == 0) {
+			return;
+		}
+		
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureID);
+	}
+	
 	public void rewind() {
 		if(indices != null) indices.rewind();
 		if(vertices != null) vertices.rewind();
@@ -168,6 +231,13 @@ public class MaterialGroup {
 		}
 		
 		bBox.writeTo(buffer);
+		
+		buffer.writeInt(width);
+		buffer.writeInt(height);
+		if(textureBuffer != null) {
+			textureBuffer.rewind();
+			buffer.writeBytes(textureBuffer);
+		}
 		
 		rewind();
 		
@@ -217,6 +287,14 @@ public class MaterialGroup {
 		
 		bBox.readFrom(buffer);
 		
+		width = buffer.readInt();
+		height = buffer.readInt();
+		if(width != 0 && height != 0) {
+			textureBuffer = ByteBuffer.allocateDirect(width * height * 4);
+			textureBuffer.order(ByteOrder.nativeOrder());
+			buffer.readBytes(textureBuffer);
+		}
+		
 		rewind();
 		
 		isValid = indicesCount > 0 && verticesCount > 0;
@@ -232,6 +310,10 @@ public class MaterialGroup {
 	
 	public void getVertex(int index, Vec3f res) {
 		res.set(vertices.getFloat(index * 3 * 4), vertices.getFloat(index * 3 * 4 + 4), vertices.getFloat(index * 3 * 4 + 4 + 4));
+	}
+	
+	public void getTexCoords(int index, Vec2f res) {
+		res.set(texCoords.getFloat(index * 2 * 4), texCoords.getFloat(index * 2 * 4 + 4));
 	}
 	
 	public MaterialGroup copyWithTransformation(Matrix4f transformation) {
@@ -301,6 +383,57 @@ public class MaterialGroup {
 		
 		copiedMaterialGroup.setData(i, v, c, n, t);
 		
+		if(textureBuffer != null) {
+			int[] image = new int[width * height];
+			textureBuffer.rewind();
+			for(int y = 0; y < height; y++) {
+				for(int x = 0; x < width; x++) {
+					int r = textureBuffer.get() & 0xff;
+					int g = textureBuffer.get() & 0xff;
+					int b = textureBuffer.get() & 0xff;
+					int a = textureBuffer.get() & 0xff;
+					image[y * width + x] = a * 256 * 256 * 256 + r * 256 * 256 + g * 256 + b;
+				}
+			}
+			copiedMaterialGroup.setTexture(image, width, height);
+		}
+		
 		return copiedMaterialGroup;
+	}
+	
+	public void applyTransformation(Matrix4f transformation) {
+		if(!isValid) {
+			return;
+		}
+		
+		bBox.reset();
+		
+		vertices.rewind();
+		for(int k = 0; k < verticesCount; k++) {
+			float x = vertices.getFloat(k * 3 * 4);
+			float y = vertices.getFloat(k * 3 * 4 + 4);
+			float z = vertices.getFloat(k * 3 * 4 + 4 + 4);
+			Vec3f pos = new Vec3f(x, y, z);
+			pos.applyMatrix(transformation);
+			vertices.putFloat(k * 3 * 4, pos.x);
+			vertices.putFloat(k * 3 * 4 + 4, pos.y);
+			vertices.putFloat(k * 3 * 4 + 4 + 4, pos.z);
+			
+			bBox.addPoint(pos);
+		}
+		
+		if(normalsCount > 0) {
+			normals.rewind();
+			for(int k = 0; k < normalsCount; k++) {
+				float x = normals.getFloat(k * 3 * 4);
+				float y = normals.getFloat(k * 3 * 4 + 4);
+				float z = normals.getFloat(k * 3 * 4 + 4 + 4);
+				Vec3f normal = new Vec3f(x, y, z);
+				normal.transformDirection(transformation);
+				normals.putFloat(k * 3 * 4, normal.x);
+				normals.putFloat(k * 3 * 4 + 4, normal.y);
+				normals.putFloat(k * 3 * 4 + 4 + 4, normal.z);
+			}
+		}
 	}
 }

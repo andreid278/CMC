@@ -70,6 +70,15 @@ public class ViewerCamera {
 		Quaternion rot = new Quaternion();
 		rot.setFromAxisAngle(new Vector4f(axisX, axisY, axisZ, angle));
 		Quaternion.mul(rot, cameraRotation, cameraRotation);
+		//Quaternion.mul(cameraRotation, rot, cameraRotation);
+		
+		isUpdated = true;
+	}
+	
+	public void rotate(Matrix4f m) {
+		Quaternion rot = new Quaternion();
+		rot.setFromMatrix(m);
+		Quaternion.mul(rot, cameraRotation, cameraRotation);
 		
 		isUpdated = true;
 	}
@@ -86,6 +95,9 @@ public class ViewerCamera {
 		cameraTranslation.add(cameraRight);
 		cameraTranslation.add(cameraUp);*/
 		
+		//Vec3f tr = new Vec3f((float)dX / w * 100, (float)dY / h * 100, 0.0f);
+		//tr.applyQuaternion(cameraRotation);
+		//cameraTranslation.add(tr);
 		cameraTranslation.x += (float)dX / w * 100;
 		cameraTranslation.y += (float)dY / h * 100;
 		

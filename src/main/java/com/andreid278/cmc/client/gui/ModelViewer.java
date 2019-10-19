@@ -17,6 +17,7 @@ import com.andreid278.cmc.client.gui.viewer.ViewerCamera;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.utils.Box3f;
 import com.andreid278.cmc.utils.Ray3f;
+import com.andreid278.cmc.utils.Vec3f;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -51,6 +52,7 @@ public class ModelViewer extends Gui {
 	public int curMouseY;
 	
 	MovableObject intersectionResult = null;
+	Vec3f intersectionPoint = null;
 	
 	public ModelViewer(int x, int y, int w, int h) {
 		this.x = x;
@@ -72,7 +74,6 @@ public class ModelViewer extends Gui {
 		}
 		
 		globalBBox.reset();
-		
 		calculateBBox();
 		camera.resetAndFitCamera(globalBBox);
 		
@@ -86,6 +87,7 @@ public class ModelViewer extends Gui {
 		
 		globalBBox.reset();
 		calculateBBox();
+		camera.resetAndFitCamera(globalBBox);
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
@@ -148,6 +150,7 @@ public class ModelViewer extends Gui {
 	
 	public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
 		intersectionResult = null;
+		intersectionPoint = null;
 		if(isMouseInside(mouseX, mouseY)) {
 			wasDragged = false;
 			if(mouseButton == 0) {
@@ -168,6 +171,9 @@ public class ModelViewer extends Gui {
 							resDist = dist;
 							intersectionResult = object;
 						}
+					}
+					if(intersectionResult != null) {
+						intersectionPoint = new Vec3f(ray.direction).mul(resDist).add(ray.origin);
 					}
 				}
 			}
@@ -192,6 +198,19 @@ public class ModelViewer extends Gui {
 			if(clickedMouseButton == 0) {
 				float angleX = 2 * (float) Math.PI * (mouseX - mouseStartX) / w;
 				float angleY = 2 * (float) Math.PI * (mouseY - mouseStartY) / h;
+				/*Matrix4f rot = new Matrix4f();
+				rot.setIdentity();
+				if(intersectionPoint != null) {
+					rot.translate(intersectionPoint);
+				}
+				rot.rotate(-angleX, new Vec3f(0, 1, 0), rot);
+				rot.rotate(angleY, new Vec3f(1, 0, 0), rot);
+				if(intersectionPoint != null) {
+					intersectionPoint.negate();
+					rot.translate(intersectionPoint);
+					intersectionPoint.negate();
+				}
+				camera.rotate(rot);*/
 				camera.rotate(0, 1, 0, angleX);
 				camera.rotate(1, 0, 0, -angleY);
 			}

@@ -28,6 +28,8 @@ public class CMCData {
 	
 	public final int maxLoadedSize = 300;
 	
+	public String lastLoadedmodelPath = "";
+	
 	// Data loaded to server, client info
 	public class LoadedToServerData {
 		public UUID uuid = null;
