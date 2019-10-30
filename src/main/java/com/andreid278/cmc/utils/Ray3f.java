@@ -139,7 +139,7 @@ public class Ray3f {
 		return t >= 0 ? t : Float.MAX_VALUE;
 	}
 	
-	public float intersectCircle(Vec3f center, Vec3f normal, float rad, float tolerance) {
+	public float intersectCircle(Vec3f center, Vec3f normal, float rad, float tolerance, boolean toCheckOnlyBoundaries) {
 		Plane plane = new Plane(normal, center);
 		
 		float t = intersectPlane(plane);
@@ -152,7 +152,7 @@ public class Ray3f {
 		
 		float distToCenter = p.distTo(center);
 		
-		if(distToCenter > rad - tolerance && distToCenter < rad + tolerance) {
+		if(toCheckOnlyBoundaries && distToCenter > rad - tolerance && distToCenter < rad + tolerance || !toCheckOnlyBoundaries && distToCenter < rad) {
 			return t;
 		}
 		

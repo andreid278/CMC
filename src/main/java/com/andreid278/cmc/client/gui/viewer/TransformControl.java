@@ -25,6 +25,7 @@ public class TransformControl {
 	public Vec3i colorAxisX = new Vec3i(255, 0, 0);
 	public Vec3i colorAxisY = new Vec3i(0, 255, 0);
 	public Vec3i colorAxisZ = new Vec3i(0, 0, 255);
+	public Vec3i colorAxisAll = new Vec3i(255, 255, 255);
 	public Vec3i selectionColor = new Vec3i(255, 255, 0);
 	
 	public float tolerance;
@@ -57,19 +58,19 @@ public class TransformControl {
 		startCenter.copy(center);
 	}
 	
-	public void draw() {
+	public void draw(ViewerCamera camera) {
 		if(attachedObject == null || !attachedObject.GlobalBoundingBox().isValid) {
 			return;
 		}
 		
 		if(mode == 0) {
-			drawTranslation();
+			drawTranslation(camera);
 		}
 		else if(mode == 1) {
-			drawRotation();
+			drawRotation(camera);
 		}
 		else if(mode == 2) {
-			drawScaling();
+			drawScaling(camera);
 		}
 	}
 	
@@ -96,10 +97,15 @@ public class TransformControl {
 			selectedAxis = checkScale(ray);
 			
 			if(selectedAxis != -1) {
-				Vec3f v = new Vec3f();
-				Vec3f.cross(axis[selectedAxis], ray.direction, v);
-				v.normalise();
-				draggingPlane.setFromPointVectorVector(startPoint, axis[selectedAxis], v);
+				if(selectedAxis == 3) {
+					draggingPlane.setFromPointNormal(startPoint, ray.direction);
+				}
+				else {
+					Vec3f v = new Vec3f();
+					Vec3f.cross(axis[selectedAxis], ray.direction, v);
+					v.normalise();
+					draggingPlane.setFromPointVectorVector(startPoint, axis[selectedAxis], v);
+				}
 			}
 		}
 		
@@ -130,7 +136,7 @@ public class TransformControl {
 		selectedAxis = -1;
 	}
 	
-	private void drawTranslation() {
+	private void drawTranslation(ViewerCamera camera) {
 		GlStateManager.disableDepth();
 		
 		Vec3i color;
@@ -145,7 +151,7 @@ public class TransformControl {
 		GlStateManager.enableDepth();
 	}
 	
-	private void drawRotation() {
+	private void drawRotation(ViewerCamera camera) {
 		GlStateManager.disableDepth();
 		
 		Vec3i color;
@@ -160,7 +166,7 @@ public class TransformControl {
 		GlStateManager.enableDepth();
 	}
 	
-	private void drawScaling() {
+	private void drawScaling(ViewerCamera camera) {
 		GlStateManager.disableDepth();
 		
 		Vec3i color;
@@ -171,6 +177,9 @@ public class TransformControl {
 		GuiUtils.drawLine(center.x - axis[1].x * tolerance, center.y - axis[1].y * tolerance, center.z - axis[1].z * tolerance, center.x + axis[1].x * tolerance, center.y + axis[1].y * tolerance, center.z + axis[1].z * tolerance, color.x, color.y, color.z);
 		color = selectedAxis == 2 ? selectionColor : colorAxisZ;
 		GuiUtils.drawLine(center.x - axis[2].x * tolerance, center.y - axis[2].y * tolerance, center.z - axis[2].z * tolerance, center.x + axis[2].x * tolerance, center.y + axis[2].y * tolerance, center.z + axis[2].z * tolerance, color.x, color.y, color.z);
+		
+		color = selectedAxis == 3 ? selectionColor : colorAxisAll;
+		GuiUtils.drawCircle(center, camera.getDir(), tolerance, 32, color.x, color.y, color.z);
 		
 		GlStateManager.enableDepth();
 	}
@@ -226,9 +235,9 @@ public class TransformControl {
 		int res = -1;
 		float dist = Float.MAX_VALUE;
 		
-		float distX = ray.intersectCircle(center, axis[0], tolerance, 0.1f * tolerance);
-		float distY = ray.intersectCircle(center, axis[1], tolerance, 0.1f * tolerance);
-		float distZ = ray.intersectCircle(center, axis[2], tolerance, 0.1f * tolerance);
+		float distX = ray.intersectCircle(center, axis[0], tolerance, 0.1f * tolerance, true);
+		float distY = ray.intersectCircle(center, axis[1], tolerance, 0.1f * tolerance, true);
+		float distZ = ray.intersectCircle(center, axis[2], tolerance, 0.1f * tolerance, true);
 		
 		if(distX < dist) {
 			dist = distX;
@@ -283,6 +292,7 @@ public class TransformControl {
 		float distX = ray.intersectLine(new Vec3f(axis[0]).mul(-tolerance).add(center), new Vec3f(axis[0]).mul(tolerance).add(center), 0.1f * tolerance);
 		float distY = ray.intersectLine(new Vec3f(axis[1]).mul(-tolerance).add(center), new Vec3f(axis[1]).mul(tolerance).add(center), 0.1f * tolerance);
 		float distZ = ray.intersectLine(new Vec3f(axis[2]).mul(-tolerance).add(center), new Vec3f(axis[2]).mul(tolerance).add(center), 0.1f * tolerance);
+		float distAll = ray.intersectCircle(center, ray.direction, tolerance, tolerance * 0.1f, true);
 		
 		if(distX < dist) {
 			dist = distX;
@@ -299,6 +309,11 @@ public class TransformControl {
 			res = 2;
 		}
 		
+		if(distAll < Float.MAX_VALUE) {
+			dist = distAll;
+			res = 3;
+		}
+		
 		if(res != -1) {
 			startPoint.set(ray.direction.x * dist + ray.origin.x, ray.direction.y * dist + ray.origin.y, ray.direction.z * dist + ray.origin.z);
 			prevScale = 1.0f;
@@ -313,18 +328,38 @@ public class TransformControl {
 			Vec3f point = new Vec3f(ray.direction).mul(t).add(ray.origin);
 			Vec3f startDir = new Vec3f(startPoint).sub(center);
 			Vec3f curDir = new Vec3f(point).sub(center);
-			float startLength = Vec3f.dot(axis[selectedAxis], startDir);
-			float curLength = Vec3f.dot(axis[selectedAxis], curDir);
+			float startLength = selectedAxis == 3 ? startDir.length() : Vec3f.dot(axis[selectedAxis], startDir);
+			float curLength = selectedAxis == 3 ? curDir.length() : Vec3f.dot(axis[selectedAxis], curDir);
 			
 			if(Math.abs(startLength) < 1e-4 || Math.abs(curLength) < 1e-4) {
 				return;
 			}
 			
 			float curScale = curLength / startLength;
+			
+			Vec3f vectorPrevScale = new Vec3f(1.0f, 1.0f, 1.0f);
+			Vec3f vectorScale = new Vec3f(1.0f, 1.0f, 1.0f);
+			
+			if(selectedAxis == 0) {
+				vectorPrevScale.x = 1.0f / prevScale;
+				vectorScale.x = curScale;
+			}
+			else if(selectedAxis == 1) {
+				vectorPrevScale.y = 1.0f / prevScale;
+				vectorScale.y = curScale;
+			}
+			else if(selectedAxis == 2) {
+				vectorPrevScale.z = 1.0f / prevScale;
+				vectorScale.z = curScale;
+			}
+			else if(selectedAxis == 3) {
+				vectorPrevScale.set(1.0f / prevScale, 1.0f / prevScale, 1.0f / prevScale);
+				vectorScale.set(curScale, curScale, curScale);
+			}
 		
 			if(attachedObject != null) {
-				attachedObject.scale(startCenter, selectedAxis, 1.0f / prevScale);
-				attachedObject.scale(startCenter, selectedAxis, curScale);
+				attachedObject.scale(startCenter, vectorPrevScale);
+				attachedObject.scale(startCenter, vectorScale);
 				prevScale = curScale;
 				
 				axis[0].set(attachedObject.transformation.m00, attachedObject.transformation.m01, attachedObject.transformation.m02);

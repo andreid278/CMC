@@ -72,7 +72,7 @@ public abstract class MovableObject {
 		globalBBox.isValid = false;
 	}
 	
-	public void scale(Vec3f center, int axis, float coeff) {
+	public void scale(Vec3f center, Vec3f scaleVector) {
 		Vec3f translationVector = new Vec3f(center);
 		
 		Matrix4f translationMatrix = new Matrix4f();
@@ -81,16 +81,6 @@ public abstract class MovableObject {
 		
 		Matrix4f scaleMatrix = new Matrix4f();
 		scaleMatrix.setIdentity();
-		Vec3f scaleVector = new Vec3f(1, 1, 1);
-		if(axis == 0) {
-			scaleVector.setX(coeff);
-		}
-		else if(axis == 1) {
-			scaleVector.setY(coeff);
-		}
-		else if(axis == 2) {
-			scaleVector.setZ(coeff);
-		}
 		Matrix4f.scale(scaleVector, scaleMatrix, scaleMatrix);
 		
 		Matrix4f inverseTranslationMatrix = new Matrix4f();

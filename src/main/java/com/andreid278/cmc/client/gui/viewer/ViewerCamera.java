@@ -42,6 +42,12 @@ public class ViewerCamera {
 		return ray;
 	}
 	
+	public Vec3f getDir() {
+		Vec3f dir = new Vec3f(0, 0, -1);
+		dir.transformDirection(cameraMatrix);
+		return dir;
+	}
+	
 	public void resetTransformation() {
 		cameraTranslation.set(0, 0, 0);
 		cameraRotation.setIdentity();
@@ -159,5 +165,9 @@ public class ViewerCamera {
 		inverseCameraTranslation.negate();
 		Matrix4f.translate(inverseCameraTranslation, cameraMatrix, cameraMatrix);
 		//cameraMatrix.transpose();
+	}
+	
+	public void updateCamera(Box3f box) {
+		calculateCameraMatrix(box);
 	}
 }

@@ -114,6 +114,7 @@ public class ModelViewer extends Gui {
 		calculateBBox();
 		
 		if(globalBBox.isValid) {
+			camera.updateCamera(globalBBox);
 			GlStateManager.pushMatrix();
 			float scale = camera.scaleConst * camera.cameraScale * globalBBox.getSize();
 			GlStateManager.translate(x + w / 2, y + h / 2, scale);
@@ -134,7 +135,7 @@ public class ModelViewer extends Gui {
 			}
 			
 			transformControl.tolerance = 1.0f / camera.cameraScale;
-			transformControl.draw();
+			transformControl.draw(camera);
 		
 			GlStateManager.popMatrix();
 		}
