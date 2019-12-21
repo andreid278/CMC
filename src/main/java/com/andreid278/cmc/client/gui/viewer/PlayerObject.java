@@ -1,6 +1,7 @@
 package com.andreid278.cmc.client.gui.viewer;
 
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.IntersectionData;
 import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
@@ -120,7 +121,7 @@ public class PlayerObject extends MovableObject {
 	}
 	
 	@Override
-	protected float intersectWithLocalRay(Ray3f ray) {
+	protected float intersectWithLocalRay(Ray3f ray, IntersectionData intersectionData) {
 		return Float.MAX_VALUE;
 	}
 

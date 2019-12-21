@@ -16,6 +16,7 @@ import com.andreid278.cmc.client.gui.viewer.TransformControl;
 import com.andreid278.cmc.client.gui.viewer.ViewerCamera;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.IntersectionData;
 import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
@@ -53,6 +54,10 @@ public class ModelViewer extends Gui {
 	
 	MovableObject intersectionResult = null;
 	Vec3f intersectionPoint = null;
+	
+	boolean paintingMode = false;
+	float brushSize = 0.01f;
+	int color = 0xffffffff;
 	
 	public ModelViewer(int x, int y, int w, int h) {
 		this.x = x;
@@ -109,7 +114,7 @@ public class ModelViewer extends Gui {
 		GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 		GlStateManager.disableTexture2D();
 		
-		GuiUtils.drawFilledRectangle(x, y, x + w, y + h, 0, 0, 0);
+		GuiUtils.drawFilledRectangle(x, y, x + w, y + h, 20, 20, 20);
 		
 		calculateBBox();
 		
@@ -151,9 +156,9 @@ public class ModelViewer extends Gui {
 	
 	public void mouseClicked(int mouseX, int mouseY, int mouseButton) {
 		intersectionResult = null;
-		intersectionPoint = null;
 		if(isMouseInside(mouseX, mouseY)) {
 			wasDragged = false;
+			IntersectionData intersectionData = new IntersectionData();
 			if(mouseButton == 0) {
 				Ray3f ray = camera.project(mouseX, mouseY, globalBBox);
 				System.out.println("(" + ray.origin.x + ", " + ray.origin.y + ", " + ray.origin.z + "), " + "(" + ray.direction.x + ", " + ray.direction.y + ", " + ray.direction.z + ")");
@@ -164,19 +169,16 @@ public class ModelViewer extends Gui {
 					}
 				}
 				
-				if(canAttachTransformControl) {
-					float resDist = Float.MAX_VALUE;
-					for(MovableObject object : objects) {
-						float dist = object.intersectRay(ray);
-						if(dist < resDist) {
-							resDist = dist;
-							intersectionResult = object;
-						}
-					}
-					if(intersectionResult != null) {
-						intersectionPoint = new Vec3f(ray.direction).mul(resDist).add(ray.origin);
-					}
+				if(canAttachTransformControl || paintingMode) {
+					intersectionData = checkIntersection(ray);
 				}
+			}
+			
+			if(paintingMode) {
+				if(intersectionData.material != null) {
+					intersectionData.material.paint(intersectionData.point, brushSize, color);
+				}
+				return;
 			}
 			
 			isDragged = true;
@@ -191,6 +193,16 @@ public class ModelViewer extends Gui {
 	public boolean mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
 		if(!isMouseInside(mouseX, mouseY)) {
 			return false;
+		}
+		
+		if(paintingMode && clickedMouseButton == 0) {
+			Ray3f ray = camera.project(mouseX, mouseY, globalBBox);
+			IntersectionData intersectionData = checkIntersection(ray);
+			if(intersectionData.material != null) {
+				intersectionData.material.paint(intersectionData.point, brushSize, color);
+			}
+			
+			return true;
 		}
 		
 		wasDragged = true;
@@ -239,7 +251,7 @@ public class ModelViewer extends Gui {
 		
 		// Click
 		if(!wasDragged && isMouseInside(mouseX, mouseY)) {
-			if(intersectionResult != null) {
+			if(intersectionResult != null && !paintingMode) {
 				System.out.println("Intersection");
 				transformControl.attachObject(intersectionResult);
 				return;
@@ -310,5 +322,40 @@ public class ModelViewer extends Gui {
 	
 	public void saveModel() {
 		
+	}
+	
+	private IntersectionData checkIntersection(Ray3f ray) {
+		IntersectionData intersectionData = new IntersectionData();
+		float resDist = Float.MAX_VALUE;
+		for(MovableObject object : objects) {
+			IntersectionData localData = new IntersectionData();
+			float dist = object.intersectRay(ray, localData);
+			if(dist < resDist) {
+				resDist = dist;
+				intersectionResult = object;
+				intersectionData.copy(localData);
+			}
+		}
+		if(modelObject != null) {
+			IntersectionData localData = new IntersectionData();
+			float dist = modelObject.intersectRay(ray, localData);
+			if(dist < resDist) {
+				resDist = dist;
+				intersectionResult = modelObject;
+				intersectionData.copy(localData);
+			}
+		}
+		
+		if(intersectionResult != null) {
+			intersectionData.point = new Vec3f(ray.direction).mul(resDist).add(ray.origin);
+			
+			intersectionData.point.applyMatrix(intersectionResult.invertTransformation);
+		}
+		
+		return intersectionData;
+	}
+	
+	public void togglePainting() {
+		paintingMode = !paintingMode;
 	}
 }

@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.Matrix4f;
 import net.minecraft.util.math.Vec3d;
 
 public class Ray3f {
+	
 	public Vec3f origin = new Vec3f(0, 0, 0);
 	public Vec3f direction = new Vec3f(1, 0, 0);
 	
@@ -187,13 +188,15 @@ public class Ray3f {
 		return Vec3f.dot(v2, qVec) * invDet;
 	}
 	
-	public float intersectCMCModel(CMCModel model) {
+	public float intersectCMCModel(CMCModel model, IntersectionData intersectionData) {
 		float res = Float.MAX_VALUE;
 		
 		Vec3i triangle = new Vec3i(0, 0, 0);
 		Vec3f p1 = new Vec3f();
 		Vec3f p2 = new Vec3f();
 		Vec3f p3 = new Vec3f();
+		
+		intersectionData.triangle = new Vec3i(triangle);
 		
 		for(MaterialGroup material : model.materials) {
 			int trianglesNum = material.trianglesNum();
@@ -207,6 +210,8 @@ public class Ray3f {
 				
 				if(triangleIntersection < res) {
 					res = triangleIntersection;
+					intersectionData.triangle.set(triangle);
+					intersectionData.material = material;
 				}
 			}
 		}

@@ -127,6 +127,10 @@ public class Vec3f extends Vector3f {
 		return (float) Math.sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y) + (z - v.z) * (z - v.z));
 	}
 	
+	public float sqDistTo(Vec3f v) {
+		return (x - v.x) * (x - v.x) + (y - v.y) * (y - v.y) + (z - v.z) * (z - v.z);
+	}
+	
 	public void buildSpace(Vec3f v1, Vec3f v2) {
 		v1.set(1, 0, 0);
 		if(Math.abs(Vec3f.dot(this, v1)) > this.length() * 0.9999) {

@@ -3,6 +3,8 @@ package com.andreid278.cmc.client.model;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,9 +12,14 @@ import org.apache.http.util.ByteArrayBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
+import org.lwjgl.opengl.GL42;
+import org.lwjgl.util.vector.Vector4f;
 
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.MathUtils;
+import com.andreid278.cmc.utils.TrianglePixelsIterator;
 import com.andreid278.cmc.utils.Vec2f;
+import com.andreid278.cmc.utils.Vec2i;
 import com.andreid278.cmc.utils.Vec3f;
 import com.andreid278.cmc.utils.Vec3i;
 
@@ -434,6 +441,118 @@ public class MaterialGroup {
 				normals.putFloat(k * 3 * 4 + 4, normal.y);
 				normals.putFloat(k * 3 * 4 + 4 + 4, normal.z);
 			}
+		}
+	}
+	
+	public void paint(Vec3f point, float radius, int color) {
+		if(textureBuffer == null || width == 0 || height == 0 || texCoordsCount == 0) {
+			return;
+		}
+		
+		Vec3i triangle = new Vec3i(0, 0, 0);
+		Vec3f p1 = new Vec3f();
+		Vec3f p2 = new Vec3f();
+		Vec3f p3 = new Vec3f();
+		Vec2f t1 = new Vec2f();
+		Vec2f t2 = new Vec2f();
+		Vec2f t3 = new Vec2f();
+		Vec2i tp1 = new Vec2i();
+		Vec2i tp2 = new Vec2i();
+		Vec2i tp3 = new Vec2i();
+		Vec2f curT = new Vec2f();
+		Vector4f intersectionRes = new Vector4f();
+		Vec3f circleCenter = new Vec3f();
+		float circleRad = 0.0f;
+		
+		TrianglePixelsIterator iter = new TrianglePixelsIterator(width, height);
+		
+		bindTexture();
+		
+		int xMin = width - 1;
+		int yMin = height - 1;
+		int xMax = 0;
+		int yMax = 0;
+		
+		for(int i = 0; i < indicesCount; i++) {
+			getTriangle(i, triangle);
+			getVertex(triangle.x, p1);
+			getVertex(triangle.y, p2);
+			getVertex(triangle.z, p3);
+			if(!MathUtils.intersectTriangleSphere(p1, p2, p3, point, radius, intersectionRes)) {
+				continue;
+			}
+			circleCenter.set(intersectionRes.x, intersectionRes.y, intersectionRes.z);
+			circleRad = intersectionRes.w;
+			getTexCoords(triangle.x, t1);
+			getTexCoords(triangle.y, t2);
+			getTexCoords(triangle.z, t3);
+			
+			iter.init(t1, t2, t3);
+			for(; iter.more(); iter.next()) {
+				curT.set((float)iter.cur().x / width, (float)iter.cur().y / height);
+				if(checkIfPointInCircle(p1, p2, p3,
+						t1, t2, t3,
+						curT,
+						circleCenter, circleRad)) {
+					if(iter.cur().x < xMin) xMin = iter.cur().x;
+					if(iter.cur().y < yMin) yMin = iter.cur().y;
+					if(iter.cur().x > xMax) xMax = iter.cur().x;
+					if(iter.cur().y > yMax) yMax = iter.cur().y;
+					paintPixel(iter.cur(), color);
+				}
+			}
+		}
+		
+		dumpTexture (xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
+	}
+	
+	Vec3f tempV1 = new Vec3f();
+	Vec3f tempV2 = new Vec3f();
+	Vec3f bV = new Vec3f();
+	Vec3f pIn3d = new Vec3f();
+	private boolean checkIfPointInCircle(Vec3f p1, Vec3f p2, Vec3f p3,
+			Vec2f t1, Vec2f t2, Vec2f t3,
+			Vec2f p,
+			Vec3f circleCenter, float circleRad) {
+		tempV1.set(t2.x - t1.x, t3.x - t1.x, t1.x - p.x);
+		tempV2.set(t2.y - t1.y, t3.y - t1.y, t1.y - p.y);
+		Vec3f.cross(tempV1, tempV2, bV);
+		bV.x /= bV.z;
+		bV.y /= bV.z;
+		
+		tempV1.set(p2);
+		tempV1.sub(p1);
+		tempV1.mul(bV.x);
+		tempV2.set(p3);
+		tempV2.sub(p1);
+		tempV2.mul(bV.y);
+		pIn3d.set(p1);
+		pIn3d.add(tempV1);
+		pIn3d.add(tempV2);
+		
+		return pIn3d.sqDistTo(circleCenter) <= circleRad * circleRad;
+	}
+	
+	private void paintPixel(Vec2i pixel, int color) {
+		textureBuffer.asIntBuffer().put(pixel.y * width + pixel.x, color);
+	}
+	
+	private void dumpTexture(int x, int y, int w, int h) {
+		if(textureID != 0 && w > 0 && h > 0) {
+			int prevUnpackRowLength = GL11.glGetInteger(GL11.GL_UNPACK_ROW_LENGTH);
+			int prevUnpackSkipPixels = GL11.glGetInteger(GL11.GL_UNPACK_SKIP_PIXELS);
+			int prevUnpackSkipRows = GL11.glGetInteger(GL11.GL_UNPACK_SKIP_ROWS);
+			
+			GL11.glPixelStorei( GL11.GL_UNPACK_ROW_LENGTH, width);
+			GL11.glPixelStorei( GL11.GL_UNPACK_SKIP_PIXELS, x);
+			GL11.glPixelStorei( GL11.GL_UNPACK_SKIP_ROWS, y);
+			
+			textureBuffer.rewind();
+			GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, 0, x, y, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, textureBuffer);
+			
+			GL11.glPixelStorei( GL11.GL_UNPACK_ROW_LENGTH, prevUnpackRowLength);
+			GL11.glPixelStorei( GL11.GL_UNPACK_SKIP_PIXELS, prevUnpackSkipPixels);
+			GL11.glPixelStorei( GL11.GL_UNPACK_SKIP_ROWS, prevUnpackSkipRows);
 		}
 	}
 }

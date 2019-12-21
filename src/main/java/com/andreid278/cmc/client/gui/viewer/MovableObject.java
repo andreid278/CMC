@@ -3,6 +3,7 @@ package com.andreid278.cmc.client.gui.viewer;
 import java.nio.FloatBuffer;
 
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.IntersectionData;
 import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
@@ -11,6 +12,7 @@ import net.minecraft.client.renderer.Matrix4f;
 
 public abstract class MovableObject {
 	public Matrix4f transformation;
+	public Matrix4f invertTransformation;
 	public FloatBuffer transformationFloatBuffer = GLAllocation.createDirectFloatBuffer(16);
 	public boolean isMovable;
 	public Box3f globalBBox;
@@ -18,6 +20,8 @@ public abstract class MovableObject {
 	public MovableObject() {
 		transformation = new Matrix4f();
 		transformation.setIdentity();
+		invertTransformation = new Matrix4f();
+		invertTransformation.setIdentity();
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		
@@ -48,6 +52,8 @@ public abstract class MovableObject {
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;
+		
+		transformationChanged();
 	}
 	
 	public void rotate(Vec3f center, Vec3f axis, float angle) {
@@ -70,6 +76,8 @@ public abstract class MovableObject {
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;
+		
+		transformationChanged();
 	}
 	
 	public void scale(Vec3f center, Vec3f scaleVector) {
@@ -95,21 +103,24 @@ public abstract class MovableObject {
 		transformationFloatBuffer.rewind();
 		transformation.store(transformationFloatBuffer);
 		globalBBox.isValid = false;
+		
+		transformationChanged();
 	}
 	
-	public float intersectRay(Ray3f ray) {
+	public float intersectRay(Ray3f ray, IntersectionData intersectionData) {
 		if(!isMovable) {
 			return Float.MAX_VALUE;
 		}
 		
 		Ray3f localRay = new Ray3f(ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z);
-		Matrix4f inverseMatrix = new Matrix4f();
-		inverseMatrix.setIdentity();
-		Matrix4f.invert(transformation, inverseMatrix);
-		localRay.transform(inverseMatrix);
+		localRay.transform(invertTransformation);
 		
-		return intersectWithLocalRay(localRay);
+		return intersectWithLocalRay(localRay, intersectionData);
 	}
 	
-	protected abstract float intersectWithLocalRay(Ray3f ray);
+	private void transformationChanged() {
+		Matrix4f.invert(transformation, invertTransformation);
+	}
+	
+	protected abstract float intersectWithLocalRay(Ray3f ray, IntersectionData intersectionData);
 }

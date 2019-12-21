@@ -2,7 +2,9 @@ package com.andreid278.cmc.client.gui.viewer;
 
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.utils.Box3f;
+import com.andreid278.cmc.utils.IntersectionData;
 import com.andreid278.cmc.utils.Ray3f;
+import com.andreid278.cmc.utils.Vec3f;
 
 import net.minecraft.client.renderer.GlStateManager;
 
@@ -37,9 +39,9 @@ public class ModelObject extends MovableObject {
 	}
 	
 	@Override
-	protected float intersectWithLocalRay(Ray3f ray) {
+	protected float intersectWithLocalRay(Ray3f ray, IntersectionData intersectionData) {
 		if(isModelNotNull()) {
-			return ray.intersectCMCModel(model);
+			return ray.intersectCMCModel(model, intersectionData);
 		}
 		return Float.MAX_VALUE;
 	}

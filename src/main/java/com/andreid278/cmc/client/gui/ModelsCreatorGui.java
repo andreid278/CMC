@@ -37,6 +37,7 @@ public class ModelsCreatorGui extends GuiScreen {
 		this.buttonList.add(new GuiButton(2, 250, 50, 20, 20, "S"));
 		this.buttonList.add(new GuiButton(3, 10, 10, 20, 20, "Ci"));
 		this.buttonList.add(new GuiButton(4, 10, 30, 20, 20, "Cy"));
+		this.buttonList.add(new GuiButton(50, 10, 100, 20, 20, "P"));
 		this.buttonList.add(new GuiButton(99, 250, 70, 50, 20, "Import"));
 		this.buttonList.add(new GuiButton(100, 250, 100, 50, 20, "Save"));
 	}
@@ -97,6 +98,9 @@ public class ModelsCreatorGui extends GuiScreen {
 			PrimitiveReader readerCylinder = new PrimitiveReader(PrimitiveType.Cylinder);
 			readerCylinder.read();
 			modelViewer.addObject(readerCylinder.getModel());
+			break;
+		case 50:
+			modelViewer.togglePainting();
 			break;
 		case 99:
 			JFileChooser fileopen = new JFileChooser();

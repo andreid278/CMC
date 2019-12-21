@@ -170,4 +170,8 @@ public class ViewerCamera {
 	public void updateCamera(Box3f box) {
 		calculateCameraMatrix(box);
 	}
+	
+	public Matrix4f getCameraMatrix() {
+		return cameraMatrix;
+	}
 }

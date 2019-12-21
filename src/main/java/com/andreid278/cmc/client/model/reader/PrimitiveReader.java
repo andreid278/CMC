@@ -148,7 +148,8 @@ public class PrimitiveReader extends CMCModelReader {
 		int[] image = new int[w * h];
 		for(int i = 0; i < h; i++) {
 			for(int j = 0; j < w; j++) {
-				image[i * w + j] = randColor() + 0xff000000;
+				//image[i * w + j] = randColor() + 0xff000000;
+				image[i * w + j] = 0xff000000;
 			}
 		}
 		
