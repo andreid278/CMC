@@ -160,7 +160,7 @@ public class Ray3f {
 		return Float.MAX_VALUE;
 	}
 	
-	public float intersectTriangle(Vec3f p1, Vec3f p2, Vec3f p3) {
+	/*public float intersectTriangle(Vec3f p1, Vec3f p2, Vec3f p3) {
 		Vec3f v1 = new Vec3f(p2).sub(p1);
 		Vec3f v2 = new Vec3f(p3).sub(p1);
 		Vec3f pVec = new Vec3f();
@@ -186,6 +186,60 @@ public class Ray3f {
 		}
 		
 		return Vec3f.dot(v2, qVec) * invDet;
+	}*/
+	
+	static Vec3f itV1 = new Vec3f();
+	static Vec3f itV2 = new Vec3f();
+	static Vec3f itN = new Vec3f();
+	static Vec3f itDiff = new Vec3f();
+	public float intersectTriangle(Vec3f p1, Vec3f p2, Vec3f p3) {
+		itV1.copy(p2).sub(p1);
+		itV2.copy(p3).sub(p1);
+		Vec3f.cross(itV1, itV2, itN);
+		
+		float DdN = Vec3f.dot(direction, itN);
+		int sign;
+
+		if(DdN > 0) {
+			sign = 1;
+		}
+		else if(DdN < 0) {
+			sign = - 1;
+			DdN = - DdN;
+		}
+		else {
+			return Float.MAX_VALUE;
+		}
+
+		itDiff.copy(origin).sub(p1);
+		
+		Vec3f.cross(itDiff, itV2, itV2);
+		float DdQxE2 = sign * Vec3f.dot(direction, itV2);
+		if(DdQxE2 < 0) {
+			return Float.MAX_VALUE;
+		}
+
+		Vec3f.cross(itV1, itDiff, itV1);
+		float DdE1xQ = sign * Vec3f.dot(direction, itV1);
+		if(DdE1xQ < 0) {
+			return Float.MAX_VALUE;
+		}
+
+		if(DdQxE2 + DdE1xQ > DdN) {
+			return Float.MAX_VALUE;
+		}
+		
+		float QdN = -sign * Vec3f.dot(itDiff, itN);
+		if(QdN < 0) {
+			return Float.MAX_VALUE;
+		}
+		
+		float t = QdN / DdN;
+		if(t < 0) {
+			return Float.MAX_VALUE;
+		}
+		
+		return t;
 	}
 	
 	public float intersectCMCModel(CMCModel model, IntersectionData intersectionData) {

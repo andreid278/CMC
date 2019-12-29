@@ -17,6 +17,7 @@ import com.andreid278.cmc.client.gui.viewer.ViewerCamera;
 import com.andreid278.cmc.client.model.CMCModel;
 import com.andreid278.cmc.utils.Box3f;
 import com.andreid278.cmc.utils.IntersectionData;
+import com.andreid278.cmc.utils.Plane;
 import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
@@ -54,6 +55,8 @@ public class ModelViewer extends Gui {
 	
 	MovableObject intersectionResult = null;
 	Vec3f intersectionPoint = null;
+	Vec3f rotationPoint = new Vec3f();
+	Vec3f rotationPointToShow = new Vec3f();
 	
 	boolean paintingMode = false;
 	float brushSize = 0.01f;
@@ -65,8 +68,7 @@ public class ModelViewer extends Gui {
 		this.w = w;
 		this.h = h;
 		
-		camera = new ViewerCamera(x, y, w, h);
-		camera.resetTransformation();
+		camera = new ViewerCamera(x, y, w, h, globalBBox);
 		
 		modelObject = new ModelObject(null);
 		playerObject = new PlayerObject();
@@ -80,11 +82,7 @@ public class ModelViewer extends Gui {
 		
 		globalBBox.reset();
 		calculateBBox();
-		camera.resetAndFitCamera(globalBBox);
-		
-		//Quaternion rot = new Quaternion();
-		//rot.setFromAxisAngle(new Vector4f(1, 0, 0, (float) -Math.PI * 0.5f));
-		//Quaternion.mul(rot, cameraRotation, cameraRotation);
+		camera.setSceneBox(globalBBox);
 	}
 	
 	public void addObject(CMCModel model) {
@@ -92,7 +90,7 @@ public class ModelViewer extends Gui {
 		
 		globalBBox.reset();
 		calculateBBox();
-		camera.resetAndFitCamera(globalBBox);
+		camera.setSceneBox(globalBBox);
 	}
 	
 	public void draw(Minecraft mc, int mouseX, int mouseY) {
@@ -116,16 +114,14 @@ public class ModelViewer extends Gui {
 		
 		GuiUtils.drawFilledRectangle(x, y, x + w, y + h, 20, 20, 20);
 		
+		GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+		
 		calculateBBox();
 		
 		if(globalBBox.isValid) {
-			camera.updateCamera(globalBBox);
 			GlStateManager.pushMatrix();
-			float scale = camera.scaleConst * camera.cameraScale * globalBBox.getSize();
-			GlStateManager.translate(x + w / 2, y + h / 2, scale);
-			GlStateManager.translate(camera.cameraTranslation.x, camera.cameraTranslation.y, camera.cameraTranslation.z);
-			GlStateManager.rotate(camera.cameraRotation);
-			GlStateManager.scale(-scale, scale, scale);
+			
+			GlStateManager.multMatrix(camera.getOrientationMatrixBuffer());
 			
 			modelObject.draw();
 			
@@ -139,8 +135,18 @@ public class ModelViewer extends Gui {
 				object.draw();
 			}
 			
-			transformControl.tolerance = 1.0f / camera.cameraScale;
+			transformControl.tolerance = 1.0f / camera.getScale();
 			transformControl.draw(camera);
+			
+			if(isDragged)
+			{
+				GlStateManager.disableDepth();
+				Vec3f camDir = camera.getDir();
+				float camScale = 1.0f / camera.getScale();
+				GuiUtils.drawCircle(rotationPointToShow, camDir, camScale / 50, 32, 255, 255, 255);
+				GuiUtils.drawCircle(rotationPointToShow, camDir, camScale / 100, 32, 0, 0, 0);
+				GlStateManager.enableDepth();
+			}
 		
 			GlStateManager.popMatrix();
 		}
@@ -158,9 +164,10 @@ public class ModelViewer extends Gui {
 		intersectionResult = null;
 		if(isMouseInside(mouseX, mouseY)) {
 			wasDragged = false;
-			IntersectionData intersectionData = new IntersectionData();
 			if(mouseButton == 0) {
-				Ray3f ray = camera.project(mouseX, mouseY, globalBBox);
+				IntersectionData intersectionData = new IntersectionData();
+				
+				Ray3f ray = camera.project(mouseX, mouseY);
 				System.out.println("(" + ray.origin.x + ", " + ray.origin.y + ", " + ray.origin.z + "), " + "(" + ray.direction.x + ", " + ray.direction.y + ", " + ray.direction.z + ")");
 				
 				if(transformControl.attachedObject != null) {
@@ -170,20 +177,40 @@ public class ModelViewer extends Gui {
 				}
 				
 				if(canAttachTransformControl || paintingMode) {
-					intersectionData = checkIntersection(ray);
+					intersectionData = checkIntersection(ray, true);
+				}
+			
+				if(paintingMode) {
+					if(intersectionData.material != null) {
+						intersectionData.material.paint(intersectionData.point, brushSize, color);
+					}
+					return;
 				}
 			}
-			
-			if(paintingMode) {
-				if(intersectionData.material != null) {
-					intersectionData.material.paint(intersectionData.point, brushSize, color);
+			else {
+				Ray3f ray = camera.project(mouseX, mouseY);
+				IntersectionData intersectionData = checkIntersection(ray, false);
+				if(intersectionData.point != null) {
+					rotationPointToShow.set(intersectionData.point);
+					rotationPoint.copy(rotationPointToShow).applyMatrix(camera.getLocalOrientationMatrix());
 				}
-				return;
+				else {
+					Plane plane = new Plane(camera.getDir(), rotationPointToShow);
+					float dist = ray.intersectPlane(plane);
+					if(dist != Float.MAX_VALUE) {
+						rotationPointToShow.copy(ray.direction).mul(dist).add(ray.origin);
+						rotationPoint.copy(rotationPointToShow).applyMatrix(camera.getLocalOrientationMatrix());
+					}
+					else {
+						rotationPointToShow.set(0.0f, 0.0f, 0.0f);
+						rotationPoint.copy(rotationPointToShow).applyMatrix(camera.getLocalOrientationMatrix());
+					}
+				}
+				System.out.println("Rotation around " + rotationPoint.x + " " + rotationPoint.y + " " + rotationPoint.z);
+				isDragged = true;
+				mouseStartX = mouseX;
+				mouseStartY = mouseY;
 			}
-			
-			isDragged = true;
-			mouseStartX = mouseX;
-			mouseStartY = mouseY;
 		}
 		else {
 			wasDragged = true;
@@ -196,8 +223,8 @@ public class ModelViewer extends Gui {
 		}
 		
 		if(paintingMode && clickedMouseButton == 0) {
-			Ray3f ray = camera.project(mouseX, mouseY, globalBBox);
-			IntersectionData intersectionData = checkIntersection(ray);
+			Ray3f ray = camera.project(mouseX, mouseY);
+			IntersectionData intersectionData = checkIntersection(ray, true);
 			if(intersectionData.material != null) {
 				intersectionData.material.paint(intersectionData.point, brushSize, color);
 			}
@@ -208,27 +235,15 @@ public class ModelViewer extends Gui {
 		wasDragged = true;
 		
 		if(isDragged) {
-			if(clickedMouseButton == 0) {
+			if(clickedMouseButton == 1) {
 				float angleX = 2 * (float) Math.PI * (mouseX - mouseStartX) / w;
 				float angleY = 2 * (float) Math.PI * (mouseY - mouseStartY) / h;
-				/*Matrix4f rot = new Matrix4f();
-				rot.setIdentity();
-				if(intersectionPoint != null) {
-					rot.translate(intersectionPoint);
-				}
-				rot.rotate(-angleX, new Vec3f(0, 1, 0), rot);
-				rot.rotate(angleY, new Vec3f(1, 0, 0), rot);
-				if(intersectionPoint != null) {
-					intersectionPoint.negate();
-					rot.translate(intersectionPoint);
-					intersectionPoint.negate();
-				}
-				camera.rotate(rot);*/
-				camera.rotate(0, 1, 0, angleX);
-				camera.rotate(1, 0, 0, -angleY);
+				
+				camera.rotate(rotationPoint, new Vec3f(0, 1, 0), angleX);
+				camera.rotate(rotationPoint, new Vec3f(1, 0, 0), -angleY);
 			}
 			else if(clickedMouseButton == 2) {
-				camera.translateOnScreenPlane(mouseX - mouseStartX, mouseY - mouseStartY);
+				camera.translate(mouseX - mouseStartX, mouseY - mouseStartY, 0);
 			}
 			
 			mouseStartX = mouseX;
@@ -237,7 +252,7 @@ public class ModelViewer extends Gui {
 			return true;
 		}
 		else if(transformControl.isDragged) {
-			transformControl.mouseClickMove(camera.project(mouseX, mouseY, globalBBox));
+			transformControl.mouseClickMove(camera.project(mouseX, mouseY));
 			
 			mouseStartX = mouseX;
 			mouseStartY = mouseY;
@@ -250,7 +265,7 @@ public class ModelViewer extends Gui {
 		transformControl.mouseReleased(mouseX, mouseY, state);
 		
 		// Click
-		if(!wasDragged && isMouseInside(mouseX, mouseY)) {
+		if(!wasDragged && isMouseInside(mouseX, mouseY) && state == 0) {
 			if(intersectionResult != null && !paintingMode) {
 				System.out.println("Intersection");
 				transformControl.attachObject(intersectionResult);
@@ -313,7 +328,7 @@ public class ModelViewer extends Gui {
 		
 		globalBBox.reset();
 		calculateBBox();
-		camera.resetAndFitCamera(globalBBox);
+		camera.setSceneBox(globalBBox);
 	}
 	
 	public void resetCamera() {
@@ -324,7 +339,7 @@ public class ModelViewer extends Gui {
 		
 	}
 	
-	private IntersectionData checkIntersection(Ray3f ray) {
+	private IntersectionData checkIntersection(Ray3f ray, boolean isLocal) {
 		IntersectionData intersectionData = new IntersectionData();
 		float resDist = Float.MAX_VALUE;
 		for(MovableObject object : objects) {
@@ -349,7 +364,9 @@ public class ModelViewer extends Gui {
 		if(intersectionResult != null) {
 			intersectionData.point = new Vec3f(ray.direction).mul(resDist).add(ray.origin);
 			
-			intersectionData.point.applyMatrix(intersectionResult.invertTransformation);
+			if(isLocal) {
+				intersectionData.point.applyMatrix(intersectionResult.invertTransformation);
+			}
 		}
 		
 		return intersectionData;

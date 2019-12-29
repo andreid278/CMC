@@ -1,5 +1,8 @@
 package com.andreid278.cmc.client.gui.viewer;
 
+import java.nio.FloatBuffer;
+
+import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector4f;
 
@@ -7,6 +10,7 @@ import com.andreid278.cmc.utils.Box3f;
 import com.andreid278.cmc.utils.Ray3f;
 import com.andreid278.cmc.utils.Vec3f;
 
+import net.minecraft.client.renderer.GLAllocation;
 import net.minecraft.client.renderer.Matrix4f;
 
 public class ViewerCamera {
@@ -15,163 +19,212 @@ public class ViewerCamera {
 	public int w;
 	public int h;
 	
-	public Vec3f cameraTranslation = new Vec3f(0, 0, 0);
-	public Quaternion cameraRotation = new Quaternion();
-	public float cameraScale = 1.0f;
-	Matrix4f cameraMatrix = new Matrix4f();
-	boolean isUpdated = false;
+	Vec3f offsetToCenter = new Vec3f();
+	Vec3f eye = new Vec3f();
+	Vec3f dir = new Vec3f();
+	Vec3f up = new Vec3f();
+	float dist = 0.0f;
+	
+	float scale = 1.0f;
+	
+	Matrix4f orientationMatrix = new Matrix4f();
+	Matrix4f inversedOrientationMatrix = new Matrix4f();
+	Matrix4f localOrientationMatrix = new Matrix4f();
+	
+	public FloatBuffer transformationFloatBuffer = GLAllocation.createDirectFloatBuffer(16);
+	public FloatBuffer inversedTransformationFloatBuffer = GLAllocation.createDirectFloatBuffer(16);
+	
+	boolean isOrientationValid = true;
 	
 	Ray3f ray = new Ray3f(0, 0, 0, 1, 0, 0);
 	
-	public static float scaleConst = 15.0f;
+	Box3f sceneBox;
 	
-	public ViewerCamera(int x, int y, int w, int h) {
+	float translationCoeff = 100.0f;
+	float scaleConst = 15.0f;
+	
+	public ViewerCamera(int x, int y, int w, int h, Box3f sceneBox) {
 		this.x = x;
 		this.y = y;
 		this.w = w;
 		this.h = h;
-	}
-	
-	public Ray3f project(int mouseX, int mouseY, Box3f box) {
-		calculateCameraMatrix(box);
 		
-		ray.setOrigin(mouseX - x - w * 0.5f, mouseY - y - h * 0.5f, 10000);
-		ray.setDirection(0, 0, -1);
-		ray.transform(cameraMatrix);
+		this.sceneBox = sceneBox;
 		
-		return ray;
-	}
-	
-	public Vec3f getDir() {
-		Vec3f dir = new Vec3f(0, 0, -1);
-		dir.transformDirection(cameraMatrix);
-		return dir;
-	}
-	
-	public void resetTransformation() {
-		cameraTranslation.set(0, 0, 0);
-		cameraRotation.setIdentity();
-		//cameraRotation.setFromAxisAngle(new Vector4f(0, 0, 1, (float)Math.PI));
-		Quaternion rot = new Quaternion();
-		//rot.setFromAxisAngle(new Vector4f(1, 0, 0, (float) Math.PI));
-		rot.setFromAxisAngle(new Vector4f(0, 0, 1, (float) Math.PI));
-		Quaternion.mul(cameraRotation, rot, cameraRotation);
-		//rot.setFromAxisAngle(new Vector4f(0, 1, 0, (float) Math.PI));
-		//Quaternion.mul(cameraRotation, rot, cameraRotation);
-		cameraScale = 1.0f;
+		orientationMatrix.setIdentity();
+		inversedOrientationMatrix.setIdentity();
 		
-		isUpdated = true;
-	}
-	
-	public void resetAndFitCamera(Box3f box) {
+		transformationFloatBuffer.rewind();
+		orientationMatrix.store(transformationFloatBuffer);
+		
+		inversedTransformationFloatBuffer.rewind();
+		inversedOrientationMatrix.store(inversedTransformationFloatBuffer);
+		
 		resetTransformation();
-		
-		if(box.isValid) {
-			float scale = scaleConst * box.getSize();
-			cameraTranslation.set(-box.getCenterX() * scale, box.getCenterY() * scale, -box.getCenterZ() * scale);
+	}
+	
+	private void calculateMatrix() {
+		if(isOrientationValid) {
+			return;
 		}
+		
+		localOrientationMatrix.setIdentity();
+		
+		float sc = scale * scaleConst * (sceneBox.isValid ? sceneBox.getSize() : 1.0f);
+		
+		Vec3f side = new Vec3f();
+		Vec3f.cross(dir, up, side);
+		side.normalise();
+		
+		localOrientationMatrix.m30 = eye.x;
+		localOrientationMatrix.m31 = eye.y;
+		localOrientationMatrix.m32 = eye.z;
+		
+		localOrientationMatrix.m00 = side.x * sc;
+		localOrientationMatrix.m01 = side.y * sc;
+		localOrientationMatrix.m02 = side.z * sc;
+		localOrientationMatrix.m10 = up.x * sc;
+		localOrientationMatrix.m11 = up.y * sc;
+		localOrientationMatrix.m12 = up.z * sc;
+		localOrientationMatrix.m20 = dir.x * sc;
+		localOrientationMatrix.m21 = dir.y * sc;
+		localOrientationMatrix.m22 = dir.z * sc;
+		
+		orientationMatrix.load(localOrientationMatrix);
+		orientationMatrix.m30 += offsetToCenter.x;
+		orientationMatrix.m31 += offsetToCenter.y;
+		orientationMatrix.m32 += offsetToCenter.z;
+		
+		transformationFloatBuffer.rewind();
+		orientationMatrix.store(transformationFloatBuffer);
+		
+		Matrix4f.invert(orientationMatrix, inversedOrientationMatrix);
+		
+		inversedTransformationFloatBuffer.rewind();
+		inversedOrientationMatrix.store(inversedTransformationFloatBuffer);
+		
+		isOrientationValid = true;
 	}
 	
-	public void rotate(float axisX, float axisY, float axisZ, float angle) {
-		Quaternion rot = new Quaternion();
-		rot.setFromAxisAngle(new Vector4f(axisX, axisY, axisZ, angle));
-		Quaternion.mul(rot, cameraRotation, cameraRotation);
-		//Quaternion.mul(cameraRotation, rot, cameraRotation);
+	public Matrix4f getOrientationMatrix() {
+		calculateMatrix();
 		
-		isUpdated = true;
+		return orientationMatrix;
 	}
 	
-	public void rotate(Matrix4f m) {
-		Quaternion rot = new Quaternion();
-		rot.setFromMatrix(m);
-		Quaternion.mul(rot, cameraRotation, cameraRotation);
+	public FloatBuffer getOrientationMatrixBuffer() {
+		calculateMatrix();
 		
-		isUpdated = true;
+		transformationFloatBuffer.rewind();
+		return transformationFloatBuffer;
 	}
 	
-	public void translateOnScreenPlane(int dX, int dY) {
-		/*Vec3f cameraDir = MathUtils.instance.new Vec3f(0, 0, -1);
-		Vec3f cameraRight = MathUtils.instance.new Vec3f(1, 0, 0);
-		Vec3f cameraUp = MathUtils.instance.new Vec3f(0, -1, 0);
-		Vec3f.cross(cameraRight, cameraDir, cameraUp);
+	public Matrix4f getInversedOrientationMatrix() {
+		calculateMatrix();
 		
-		cameraRight.mul((float)dX / w * 100);
-		cameraUp.mul((float)dY / h * 100);
-		
-		cameraTranslation.add(cameraRight);
-		cameraTranslation.add(cameraUp);*/
-		
-		//Vec3f tr = new Vec3f((float)dX / w * 100, (float)dY / h * 100, 0.0f);
-		//tr.applyQuaternion(cameraRotation);
-		//cameraTranslation.add(tr);
-		cameraTranslation.x += (float)dX / w * 100;
-		cameraTranslation.y += (float)dY / h * 100;
-		
-		isUpdated = true;
+		return inversedOrientationMatrix;
 	}
 	
-	public void scale(int wheel) {
+	public FloatBuffer getInversedOrientationMatrixBuffer() {
+		calculateMatrix();
+		
+		inversedTransformationFloatBuffer.rewind();
+		return inversedTransformationFloatBuffer;
+	}
+	
+	public Matrix4f getLocalOrientationMatrix() {
+		calculateMatrix();
+		
+		return localOrientationMatrix;
+	}
+	
+	public void translate(int dX, int dY, int dZ) {
+		float prevX = eye.x;
+		float prevY = eye.y;
+		float prevZ = eye.z;
+		
+		eye.x += (float)dX / w * translationCoeff;
+		eye.y += (float)dY / h * translationCoeff;
+		eye.z += (float)dZ;
+		
+		invalidate();
+	}
+	
+	public void rotate(Vec3f p, Vec3f axis, float angle) {
+		Matrix4f rotationMatrix = new Matrix4f();
+		rotationMatrix.setIdentity();
+		
+		Matrix4f.translate(p, rotationMatrix, rotationMatrix);
+		
+		Matrix4f.rotate(angle, axis, rotationMatrix, rotationMatrix);
+		
+		Vec3f mp = new Vec3f(p);
+		mp.mul(-1.0f);
+		Matrix4f.translate(mp, rotationMatrix, rotationMatrix);
+		
+		eye.applyMatrix(rotationMatrix);
+		dir.transformDirection(rotationMatrix);
+		up.transformDirection(rotationMatrix);
+		
+		invalidate();
+	}
+	
+	public void scale(float ds) {
 		float min = 0.1f;
 		float max = 10.0f;
 		float step = 0.05f;
 		
-		cameraScale = (float) Math.pow(cameraScale, 1.0 / 3.0);
-		cameraScale += wheel * step;
-		if(cameraScale < min) cameraScale = min;
-		if(cameraScale > max) cameraScale = max;
-		cameraScale = cameraScale * cameraScale * cameraScale;
+		scale = (float) Math.pow(scale, 1.0 / 3.0);
+		scale += ds * step;
+		if(scale < min) scale = min;
+		if(scale > max) scale = max;
+		scale = scale * scale * scale;
 		
-		isUpdated = true;
+		invalidate();
 	}
 	
-	private void calculateCameraMatrix(Box3f box) {
-		if(!isUpdated) {
-			return;
+	private void invalidate() {
+		isOrientationValid = false;
+	}
+	
+	public Ray3f project(int mouseX, int mouseY) {
+		ray.setOrigin(mouseX, mouseY, 10000);
+		ray.setDirection(0, 0, -1);
+		getOrientationMatrix();
+		ray.transform(inversedOrientationMatrix);
+		return ray;
+	}
+	
+	public Vec3f getDir() {
+		Vec3f camDir = new Vec3f(0, 0, 1);
+		camDir.transformDirection(getInversedOrientationMatrix());
+		return camDir;
+	}
+	
+	public void resetTransformation() {
+		scale = 1.0f;
+		
+		if(sceneBox.isValid) {
+			float boxSize = sceneBox.getSize() * scaleConst;
+			offsetToCenter.set(x + w * 0.5f - sceneBox.getCenterX() * boxSize, y + w * 0.5f - sceneBox.getCenterY() * boxSize, -sceneBox.getCenterZ() * boxSize);
+		}
+		else {
+			offsetToCenter.set(x + w * 0.5f, y + w * 0.5f, 0.0f);
 		}
 		
-		cameraMatrix.setIdentity();
+		eye.set(0.0f, 0.0f, 0.0f);
+		dir.set(0.0f, 0.0f, 1.0f);
+		up.set(0.0f, -1.0f, 0.0f);
 		
-		if(!box.isValid) {
-			return;
-		}
-		
-		// Scale
-		float scale = 1.0f / (scaleConst * cameraScale * box.getSize());
-		Vec3f scaleVector = new Vec3f(-scale, scale, scale);
-		Matrix4f.scale(scaleVector, cameraMatrix, cameraMatrix);
-		
-		// Rotation
-		Matrix4f rotationMatrix = new Matrix4f();
-		rotationMatrix.m00 = 1 - 2 * cameraRotation.y * cameraRotation.y - 2 * cameraRotation.z * cameraRotation.z;
-		rotationMatrix.m01 = 2 * cameraRotation.x * cameraRotation.y - 2 * cameraRotation.z * cameraRotation.w;
-		rotationMatrix.m02 = 2 * cameraRotation.x * cameraRotation.z + 2 * cameraRotation.y * cameraRotation.w;
-		rotationMatrix.m03 = 0;
-		rotationMatrix.m10 = 2 * cameraRotation.x * cameraRotation.y + 2 * cameraRotation.z * cameraRotation.w;
-		rotationMatrix.m11 = 1 - 2 * cameraRotation.x * cameraRotation.x - 2 * cameraRotation.z * cameraRotation.z;
-		rotationMatrix.m12 = 2 * cameraRotation.y * cameraRotation.z - 2 * cameraRotation.x * cameraRotation.w;
-		rotationMatrix.m13 = 0;
-		rotationMatrix.m20 = 2 * cameraRotation.x * cameraRotation.z - 2 * cameraRotation.y * cameraRotation.w;
-		rotationMatrix.m21 = 2 * cameraRotation.y * cameraRotation.z + 2 * cameraRotation.x * cameraRotation.w;
-		rotationMatrix.m22 = 1 - 2 * cameraRotation.x * cameraRotation.x - 2 * cameraRotation.y * cameraRotation.y;
-		rotationMatrix.m23 = 0;
-		rotationMatrix.m30 = 0;
-		rotationMatrix.m31 = 0;
-		rotationMatrix.m32 = 0;
-		rotationMatrix.m33 = 1;
-		Matrix4f.mul(cameraMatrix, rotationMatrix, cameraMatrix);
-		
-		// Translation
-		Vec3f inverseCameraTranslation = new Vec3f(cameraTranslation);
-		inverseCameraTranslation.negate();
-		Matrix4f.translate(inverseCameraTranslation, cameraMatrix, cameraMatrix);
-		//cameraMatrix.transpose();
+		invalidate();
 	}
 	
-	public void updateCamera(Box3f box) {
-		calculateCameraMatrix(box);
+	public void setSceneBox(Box3f box) {
+		sceneBox = box;
+		resetTransformation();
 	}
 	
-	public Matrix4f getCameraMatrix() {
-		return cameraMatrix;
+	public float getScale() {
+		return scale;
 	}
 }
