@@ -123,11 +123,11 @@ public class ModelViewer extends Gui {
 			
 			GlStateManager.multMatrix(camera.getOrientationMatrixBuffer());
 			
-			modelObject.draw();
-			
 			if(showPlayer) {
 				playerObject.draw();
 			}
+			
+			modelObject.draw();
 			
 			Iterator<MovableObject> it = objects.iterator();
 			while(it.hasNext()) {

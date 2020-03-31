@@ -8,6 +8,7 @@ import com.andreid278.cmc.utils.Vec3f;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBiped.ArmPose;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.client.renderer.entity.RenderLivingBase;
 import net.minecraft.client.renderer.entity.RenderManager;
@@ -100,6 +101,10 @@ public class PlayerObject extends MovableObject {
 		
 		GlStateManager.popMatrix();
 		GlStateManager.disableTexture2D();
+		
+		GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+		GlStateManager.disableTexture2D();
+		GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
 		
 		playerRenderer.getMainModel().isRiding = isRiding;
 		playerRenderer.getMainModel().isSneak = isSneak;
